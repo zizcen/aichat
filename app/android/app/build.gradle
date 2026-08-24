@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
-def releaseKeystore = rootProject.file('../.signing/grok2api-release.jks')
-def releaseStorePassword = System.getenv('GROK2API_KEYSTORE_PASSWORD')
-def releaseKeyPassword = System.getenv('GROK2API_KEY_PASSWORD') ?: releaseStorePassword
+def releaseKeystore = rootProject.file('../.signing/creative-workbench-release.jks')
+def releaseStorePassword = System.getenv('CREATIVE_WORKBENCH_KEYSTORE_PASSWORD')
+def releaseKeyPassword = System.getenv('CREATIVE_WORKBENCH_KEY_PASSWORD') ?: releaseStorePassword
 def hasReleaseSigning = releaseKeystore.exists() && releaseStorePassword
 
 android {

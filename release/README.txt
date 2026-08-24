@@ -1,18 +1,14 @@
-Grok2API Creative Workbench v0.1.0
+创作工作台 v0.1.0
 
-Current UI test build (commit 32589e9):
-  grok2api-creative-workbench-v0.1.0-debug.apk
+这是创作工作台 Android 客户端的首个正式版本：
 
-The signed release APK listed below is the previously signed package. Do not
-use it to validate the current creative-console UI until the local keystore
-password is supplied and a new signed Release build is produced.
+- Android 8.0 / API 26 及以上
+- 连接用户自己的 HTTPS Base URL 和 Client API Key
+- 聊天、图片、图片编辑、视频、TTS、STT
+- 不包含开发者 API Key，不调用管理端 API
 
-Install the signed release APK on Android 8.0/API 26 or newer:
-  grok2api-creative-workbench-v0.1.0-release.apk
+安装包：
+  creative-workbench-v0.1.0.apk
 
-SHA-256 values are in SHA256SUMS.txt. The release package is signed with the
-local Grok2API Creative Workbench RSA-3072 certificate; certificate SHA-256:
-3782015bb2e4f2d7eacbd425dd2f121c3758eb3f84a0df56bf292d384c265173
-
-The debug APK is included for local development only. On first launch enter
-your own HTTPS grok2api Base URL and Client API Key. No key is bundled.
+安装前请核对 SHA256SUMS.txt。首次启动时填写自己的 HTTPS 网关地址和
+Client API Key；应用不会内置任何 Key。

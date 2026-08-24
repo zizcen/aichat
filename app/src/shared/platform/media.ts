@@ -17,7 +17,7 @@ const MediaStore = registerPlugin<MediaStorePlugin>("MediaStore");
 export async function shareMedia(
   url: string,
   title: string,
-  filename = "grok2api-media.bin",
+  filename = "creative-workbench-media.bin",
 ): Promise<void> {
   if (!Capacitor.isNativePlatform()) {
     if (typeof navigator.share === "function")

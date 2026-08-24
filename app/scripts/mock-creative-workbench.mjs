@@ -184,7 +184,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, "127.0.0.1", () => {
-  process.stdout.write(`Mock grok2api listening on http://127.0.0.1:${port}\n`);
+  process.stdout.write(`Mock creative workbench gateway listening on http://127.0.0.1:${port}\n`);
 });
 
 function setCors(response) {

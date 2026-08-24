@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Grok2API 创作工作台</string>
-    <string name="title_activity_main">Grok2API 创作工作台</string>
+    <string name="app_name">创作工作台</string>
+    <string name="title_activity_main">创作工作台</string>
     <string name="package_name">com.grok2api.creativeworkbench</string>
     <string name="custom_url_scheme">com.grok2api.creativeworkbench</string>
 </resources>

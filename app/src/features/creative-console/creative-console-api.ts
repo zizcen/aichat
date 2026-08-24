@@ -225,7 +225,7 @@ export async function transcribeSpeech(input: { apiKey: string; model: string; f
 }
 
 function previewImage(index: number): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#161b20"/><circle cx="220" cy="280" r="160" fill="#9ee8c4" fill-opacity=".65"/><circle cx="760" cy="720" r="240" fill="#8297d9" fill-opacity=".55"/><path d="M120 820c180-240 320-180 470-390 120-168 220-188 314-90v480H120z" fill="#0d1117"/><text x="512" y="540" text-anchor="middle" fill="#f4f7f5" font-family="sans-serif" font-size="42">Grok2API Preview ${index + 1}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#161b20"/><circle cx="220" cy="280" r="160" fill="#9ee8c4" fill-opacity=".65"/><circle cx="760" cy="720" r="240" fill="#8297d9" fill-opacity=".55"/><path d="M120 820c180-240 320-180 470-390 120-168 220-188 314-90v480H120z" fill="#0d1117"/><text x="512" y="540" text-anchor="middle" fill="#f4f7f5" font-family="sans-serif" font-size="42">创作工作台 Preview ${index + 1}</text></svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 

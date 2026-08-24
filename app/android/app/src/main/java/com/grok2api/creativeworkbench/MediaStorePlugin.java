@@ -47,7 +47,7 @@ public class MediaStorePlugin extends Plugin {
     }
 
     private void saveMedia(PluginCall call) {
-        String filename = safeFilename(call.getString("filename", "grok2api-media.bin"));
+        String filename = safeFilename(call.getString("filename", "creative-workbench-media.bin"));
         String mimeType = call.getString("mimeType", "application/octet-stream");
         String encoded = call.getString("data", "");
         if (encoded.isEmpty()) {
@@ -91,7 +91,7 @@ public class MediaStorePlugin extends Plugin {
 
     @SuppressWarnings("deprecation")
     private Uri saveLegacy(String filename, String mimeType, byte[] bytes) throws Exception {
-        File directory = new File(Environment.getExternalStoragePublicDirectory(legacyDirectory(mimeType)), "Grok2API");
+        File directory = new File(Environment.getExternalStoragePublicDirectory(legacyDirectory(mimeType)), "创作工作台");
         if (!directory.exists() && !directory.mkdirs()) throw new IllegalStateException("Unable to create media directory");
         File outputFile = uniqueFile(directory, filename);
         try (FileOutputStream output = new FileOutputStream(outputFile)) { output.write(bytes); }
@@ -107,7 +107,7 @@ public class MediaStorePlugin extends Plugin {
     }
 
     private String relativePath(String mimeType) {
-        return legacyDirectory(mimeType) + File.separator + "Grok2API";
+        return legacyDirectory(mimeType) + File.separator + "创作工作台";
     }
 
     private String legacyDirectory(String mimeType) {
@@ -128,6 +128,6 @@ public class MediaStorePlugin extends Plugin {
 
     private String safeFilename(String value) {
         String sanitized = value.replaceAll("[\\\\/:*?\"<>|\\r\\n]", "-").trim();
-        return sanitized.isEmpty() ? "grok2api-media.bin" : sanitized;
+        return sanitized.isEmpty() ? "creative-workbench-media.bin" : sanitized;
     }
 }
