@@ -29,7 +29,10 @@ async function getSessionKey(): Promise<CryptoKey> {
 }
 
 export async function secureGet(key: string): Promise<string | null> {
-  if (canUseNativeStore()) return (await NativeSecureStore.get({ key })).value ?? null;
+  if (canUseNativeStore()) {
+    try { return (await NativeSecureStore.get({ key })).value ?? null; }
+    catch { return null; }
+  }
   const encrypted = typeof localStorage === "undefined" ? null : localStorage.getItem(`grok2api:secret:${key}`);
   if (!encrypted) return null;
   try {

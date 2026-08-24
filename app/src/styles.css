@@ -131,6 +131,11 @@ a { color: inherit; }
 .message-meta { color: var(--faint); font-size: 10px; margin-bottom: 5px; }
 .message-row.user .message-meta { text-align: right; }
 .message-bubble { color: #dce3ec; line-height: 1.68; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.markdown { white-space: normal; }
+.markdown pre { position: relative; overflow-x: auto; margin: 10px 0; padding: 32px 12px 12px; border: 1px solid var(--line); border-radius: 7px; background: #080c11; white-space: pre; }
+.markdown code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 12px; }
+.code-copy-button { position: absolute; top: 5px; right: 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel-soft); color: var(--muted); padding: 3px 7px; font-size: 10px; }
+.code-copy-button:hover { color: var(--text); }
 .message-row.user .message-bubble { background: #1a2531; border: 1px solid var(--line); border-radius: 12px 3px 12px 12px; padding: 10px 12px; }
 .message-actions { display: flex; gap: 3px; margin-top: 7px; opacity: 0; transition: .15s; }
 .message-row:hover .message-actions, .message-actions:focus-within { opacity: 1; }

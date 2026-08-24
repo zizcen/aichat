@@ -8,6 +8,12 @@ export default [
   { ignores: ["dist", "android", "node_modules", "vite.config.js", "vitest.config.js"] },
   js.configs.recommended,
   {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", Buffer: "readonly", URL: "readonly", setInterval: "readonly", clearInterval: "readonly" },
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2022,

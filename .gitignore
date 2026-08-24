@@ -28,6 +28,13 @@ app/android/app/src/main/assets/capacitor.config.json
 *.log
 *.jks
 *.keystore
+.signing/
+!app/.signing/
+!app/.signing/signing.properties.example
+app/.vite-dev.*
+/release/*
+!/release/SHA256SUMS.txt
+!/release/README.txt
 
 # OS/editor
 .DS_Store

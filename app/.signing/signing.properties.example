@@ -1,0 +1,5 @@
+# The real keystore stays outside Git under app/.signing/.
+# For local builds set:
+#   $env:GROK2API_KEYSTORE_PASSWORD = '...'
+#   $env:GROK2API_KEY_PASSWORD = '...'
+# Then run: cd android; .\gradlew.bat assembleRelease

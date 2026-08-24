@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "Grok2API 创作工作台",
   webDir: "dist",
   server: { androidScheme: "https" },
-  android: { allowMixedContent: false },
+  android: { allowMixedContent: false, adjustMarginsForEdgeToEdge: "auto" },
 };
 
 export default config;

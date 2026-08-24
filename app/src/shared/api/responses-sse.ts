@@ -172,6 +172,9 @@ export async function consumeResponsesSse(
   if (!result.text.trim() && !result.reasoning.trim() && result.tools.length === 0) {
     throw streamError(state, "The Responses API did not return any displayable output", "invalid_response");
   }
+  if (!state.done) {
+    throw streamError(state, "The Responses stream ended before a completion event", "incomplete_stream");
+  }
   return result;
 }
 

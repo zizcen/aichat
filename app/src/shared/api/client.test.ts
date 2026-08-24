@@ -60,4 +60,11 @@ describe("Grok2ApiClient", () => {
     expect(init.body).toBeInstanceOf(FormData);
     expect((init.body as FormData).get("file")).toBeInstanceOf(File);
   });
+
+  it("accepts completed video jobs that require authenticated content fallback", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(response('{"status":"done","progress":100}', { headers: { "content-type": "application/json" } }));
+    const client = new Grok2ApiClient({ baseUrl: "https://gateway.example", apiKey: "g2a_test_key", fetch: fetcher });
+    await expect(client.getVideoStatus("job-1")).resolves.toMatchObject({ status: "done", progress: 100 });
+  });
 });

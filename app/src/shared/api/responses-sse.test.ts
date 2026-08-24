@@ -46,4 +46,10 @@ describe("Responses SSE parser", () => {
       ),
     ).rejects.toMatchObject({ code: "incomplete_response", partialSnapshot: expect.objectContaining({ text: "partial" }) });
   });
+
+  it("treats EOF without DONE/completed as an interrupted stream", async () => {
+    await expect(
+      consumeResponsesSse('data: {"type":"response.output_text.delta","delta":"partial"}\n\n'),
+    ).rejects.toMatchObject({ code: "incomplete_stream", partialSnapshot: expect.objectContaining({ text: "partial" }) });
+  });
 });

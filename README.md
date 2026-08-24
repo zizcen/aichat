@@ -29,7 +29,9 @@ pnpm cap:sync
 
 Android 工程已设置 `minSdkVersion 26`、关闭自动备份和明文网络。API Key 在 Android 壳中由自定义 `SecureStore` Capacitor 插件使用 Android Keystore 加密；浏览器开发态只将加密密文放在本地存储，并把会话密钥留在当前浏览器会话中。
 
-本机若没有 JDK 17+ 和 Android SDK，无法执行 Gradle assemble；这不影响 Web 协议层和界面开发。发布签名、包名图标和真实 VPS 联调需要在目标发布环境补齐。
+Android 构建要求 JDK 21+ 和 Android SDK 35；本机已完成 Debug/签名 Release 构建。真实 VPS 联调、真机弱网和发布渠道签名仍需在目标环境补齐。
+
+当前本地构建的 APK 位于 `release/`：签名 Release 和 Debug 包均已生成，校验值见交付消息。
 
 ## MVP 范围
 

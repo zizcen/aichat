@@ -43,7 +43,10 @@ public class SecureStorePlugin extends Plugin {
             result.put("value", encoded == null ? JSONObject.NULL : decrypt(encoded));
             call.resolve(result);
         } catch (Exception error) {
-            call.reject("Unable to read secure storage", error);
+            prefs().edit().remove(key).apply();
+            JSObject result = new JSObject();
+            result.put("value", JSONObject.NULL);
+            call.resolve(result);
         }
     }
 

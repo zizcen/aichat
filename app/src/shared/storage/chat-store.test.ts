@@ -23,6 +23,7 @@ describe("chat persistence", () => {
     const result = saveChatSessions("scope-a", Array.from({ length: 52 }, (_, index) => session(index)));
     expect(result.saved).toBe(true);
     expect(result.removed).toBe(2);
+    expect(result.sessions).toHaveLength(50);
     const loaded = loadChatSessions("scope-a");
     expect(loaded.sessions).toHaveLength(50);
     expect(loaded.sessions[0]?.id).toBe("session-51");

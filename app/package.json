@@ -6,6 +6,7 @@
   "packageManager": "pnpm@11.6.2",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "node scripts/mock-grok2api.mjs",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",
@@ -14,7 +15,8 @@
     "preview": "vite preview",
     "cap:sync": "cap sync",
     "android:open": "cap open android",
-    "android:build": "pnpm build && cap sync android && cd android && gradlew.bat assembleDebug"
+    "android:build": "pnpm build && cap sync android && cd android && gradlew.bat assembleDebug",
+    "android:release": "pnpm build && cap sync android && cd android && gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "7.6.8",

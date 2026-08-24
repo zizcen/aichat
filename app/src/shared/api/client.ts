@@ -16,6 +16,8 @@ import {
   consumeResponsesSse,
   parseResponsesJson,
 } from "./responses-sse";
+import { normalizeApiKey } from "./auth";
+import { platformFetch } from "./native-http";
 import type {
   ApiRequestOptions,
   FetchLike,
@@ -575,12 +577,7 @@ function defaultFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Res
   if (typeof globalThis.fetch !== "function") {
     return Promise.reject(new Error("fetch is not available in this runtime"));
   }
-  return globalThis.fetch(input, init);
-}
-
-function normalizeApiKey(value: string | undefined): string | undefined {
-  const key = value?.trim().replace(/^Bearer\s+/i, "");
-  return key || undefined;
+  return platformFetch(input, init);
 }
 
 function createRequestContext(signal: AbortSignal | undefined, timeoutMs: number | undefined): RequestContext {
@@ -733,9 +730,6 @@ function parseVideoStatus(payload: unknown, baseUrl: string, urlOptions: Normali
     ? Math.max(0, Math.min(100, payload.progress))
     : status === "done" ? 100 : 0;
   const result: VideoStatusResponse = { ...payload, status, progress };
-  if (status === "done" && (!isRecord(payload.video) || typeof payload.video.url !== "string" || !payload.video.url.trim())) {
-    throw new GrokApiError(200, "The completed video response did not contain a video URL", "invalid_response");
-  }
   if (status === "failed" && (!isRecord(payload.error) || typeof payload.error.message !== "string" || !payload.error.message.trim())) {
     throw new GrokApiError(200, "The failed video response did not contain an error", "invalid_response");
   }
