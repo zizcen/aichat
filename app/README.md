@@ -1,8 +1,8 @@
-# Grok2API 创作工作台客户端
+# 创作工作台客户端
 
 ## 支持版本
 
-协议按 grok2api `v3.1.4` 公共接口快照实现。真实部署可能增加或删减能力，连接页以用户 Key 返回的 `/v1/models` 为准；未知模型仍可在各工作区手动输入。
+协议按公共接口 `v3.1.4` 快照实现。真实部署可能增加或删减能力，连接页以用户 Key 返回的 `/v1/models` 为准；未知模型仍可在各工作区手动输入。
 
 ## 开发命令
 
@@ -29,7 +29,7 @@ pnpm cap:sync
 
 生成的 Debug APK 在 `android/app/build/outputs/apk/debug/app-debug.apk`。发布签名只从 CI Secret 或本机安全配置注入，仓库不提交密钥。
 
-本地签名 Release：先生成/放置 `app/.signing/grok2api-release.jks`，设置 `GROK2API_KEYSTORE_PASSWORD`（以及可选的 `GROK2API_KEY_PASSWORD`），再运行 `pnpm android:release`。未配置签名环境变量时，Release 任务不会静默伪装成已签名包。
+本地签名 Release：先生成/放置 `app/.signing/creative-workbench-release.jks`，设置 `CREATIVE_WORKBENCH_KEYSTORE_PASSWORD`（以及可选的 `CREATIVE_WORKBENCH_KEY_PASSWORD`），再运行 `pnpm android:release`。未配置签名环境变量时，Release 任务不会静默伪装成已签名包。
 
 ## 已知限制
 

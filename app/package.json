@@ -1,12 +1,12 @@
 {
-  "name": "grok2api-creative-workbench",
+  "name": "creative-workbench",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "packageManager": "pnpm@11.6.2",
   "scripts": {
     "dev": "vite",
-    "dev:mock": "node scripts/mock-grok2api.mjs",
+    "dev:mock": "node scripts/mock-creative-workbench.mjs",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",

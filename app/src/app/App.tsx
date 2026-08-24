@@ -677,7 +677,7 @@ export function App() {
                 <div>
                   <div className="provider-strip-title">提供商</div>
                   <div className="provider-strip-hint">
-                    当前仅支持 grok2api 公共接口
+                    当前仅支持公共 API
                   </div>
                 </div>
                 <ProviderTabs
@@ -937,7 +937,7 @@ function ConnectionScreen(props: {
             </div>
           ) : null}
           <div className="connection-note">
-            支持 Android 8.0（API 26）及以上。当前仅支持 grok2api 公共接口，
+            支持 Android 8.0（API 26）及以上。当前仅支持公共 API，
             不调用管理端接口，本地媒体上传暂不启用。
           </div>
         </section>
@@ -1430,7 +1430,7 @@ function ChatWorkspace(props: {
                 activeProfile={props.activeProfile}
                 onSwitch={props.onSwitchProvider}
               />
-              <span className="provider-inline-hint">仅支持 grok2api</span>
+              <span className="provider-inline-hint">仅支持公共 API</span>
             </div>
             <div className="composer-model">
               <select

@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   "zh-CN": {
     translation: {
-      appName: "Grok2API",
+      appName: "创作工作台",
       webAccountSettings: {
         menu: "账号设置",
         acceptTerms: "接受服务协议",
@@ -1394,7 +1394,7 @@ const resources = {
   },
   en: {
     translation: {
-      appName: "Grok2API",
+      appName: "Creative Workbench",
       webAccountSettings: {
         menu: "Account settings",
         acceptTerms: "Accept terms",
