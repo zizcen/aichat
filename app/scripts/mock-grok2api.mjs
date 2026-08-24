@@ -19,6 +19,27 @@ const models = [
     capability: "image",
   },
   {
+    id: "grok-imagine-image-quality",
+    object: "model",
+    created: 0,
+    owned_by: "mock",
+    capability: "image",
+  },
+  {
+    id: "grok-imagine-image",
+    object: "model",
+    created: 0,
+    owned_by: "mock",
+    capability: "image",
+  },
+  {
+    id: "grok-imagine-image-lite",
+    object: "model",
+    created: 0,
+    owned_by: "mock",
+    capability: "image",
+  },
+  {
     id: "grok-imagine-video",
     object: "model",
     created: 0,
@@ -69,6 +90,17 @@ const server = createServer(async (request, response) => {
       data: Array.from({ length: count }, (_, index) => ({
         b64_json: transparentPng,
         revised_prompt: `Mock image ${index + 1}`,
+      })),
+    });
+  }
+  if (request.method === "POST" && url.pathname === "/v1/images/edits") {
+    const body = await readJson(request);
+    const count = Math.max(1, Math.min(4, Number(body.n) || 1));
+    return json(response, 200, {
+      created: Date.now(),
+      data: Array.from({ length: count }, (_, index) => ({
+        b64_json: transparentPng,
+        revised_prompt: `Mock edited image ${index + 1}`,
       })),
     });
   }

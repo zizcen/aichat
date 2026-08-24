@@ -11,11 +11,14 @@ import {
   Download,
   ExternalLink,
   FileAudio,
+  Github,
+  Globe2,
   History as HistoryIcon,
   ImageIcon,
   KeyRound,
   Layers3,
   LoaderCircle,
+  Menu,
   MessageSquareText,
   Mic2,
   Pause,
@@ -54,12 +57,14 @@ import type {
   Model,
   ReasoningEffort,
   ResponsesSnapshot,
+  FetchLike,
   SttResult,
   VideoStatusResponse,
   VoiceInfo,
 } from "@/shared/api/types";
 import { normalizeBaseUrl } from "@/shared/api/url";
 import { saveMedia, shareMedia } from "@/shared/platform/media";
+import { CreativeConsolePage } from "@/features/creative-console/creative-console-page";
 import {
   activateProfile,
   readApiKey,
@@ -112,6 +117,47 @@ type VideoJobInput = Pick<
   | "imageUrl"
 >;
 
+const previewProfile: ConnectionProfile = {
+  id: "preview-provider",
+  baseUrl: "https://preview.invalid",
+  apiKeyRef: "preview-only",
+  scope: "preview-scope",
+  displayName: "演示提供商",
+  createdAt: 0,
+  lastUsedAt: 0,
+};
+
+const previewModels: Model[] = [
+  { id: "grok-4.5", capability: ["chat"] },
+  { id: "grok-imagine-image-2.0", capability: ["image"] },
+  { id: "grok-imagine-video", capability: ["video"] },
+  { id: "grok-voice-latest", capability: ["tts"] },
+  { id: "grok-stt", capability: ["stt"] },
+];
+
+const previewFetch: FetchLike = async (input) => {
+  const url = String(input);
+  if (url.endsWith("/healthz"))
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  if (url.endsWith("/readyz"))
+    return new Response(JSON.stringify({ ready: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  if (url.endsWith("/v1/models"))
+    return new Response(JSON.stringify({ object: "list", data: previewModels }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  return new Response(JSON.stringify({ error: { message: "预览模式未执行网络请求" } }), {
+    status: 503,
+    headers: { "content-type": "application/json" },
+  });
+};
+
 const workspaceMeta: Record<Workspace, { label: string; description: string }> =
   {
     chat: {
@@ -128,12 +174,12 @@ const workspaceMeta: Record<Workspace, { label: string; description: string }> =
     },
     voice: {
       label: "语音",
-      description: "文字转语音与文件转写均直接连接你的网关。",
+      description: "文字转语音与文件转写均直接连接当前提供商。",
     },
-    history: { label: "历史", description: "按连接隔离的本地会话和生成任务。" },
+    history: { label: "历史", description: "按提供商隔离的本地会话和生成任务。" },
     settings: {
       label: "设置",
-      description: "管理连接、数据删除和客户端行为。",
+      description: "管理提供商、数据删除和客户端行为。",
     },
   };
 
@@ -192,6 +238,7 @@ export function App() {
   const [workspace, setWorkspace] = useState<Workspace>("chat");
   const [booting, setBooting] = useState(Boolean(activeProfile));
   const [connecting, setConnecting] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -222,7 +269,7 @@ export function App() {
           setApiKey(null);
           setClient(null);
           setModels([]);
-          if (announce) showToast("此连接的密钥需要重新输入。", "error");
+          if (announce) showToast("此提供商的密钥需要重新输入。", "error");
           return;
         }
         const nextClient = new Grok2ApiClient({
@@ -237,7 +284,7 @@ export function App() {
         await activateProfile(profile);
         setProfiles(readProfiles().profiles);
         setActiveProfileId(profile.id);
-        if (announce) showToast("连接已切换，数据空间已隔离。", "success");
+        if (announce) showToast("提供商已切换，数据空间已隔离。", "success");
       } catch (error) {
         setApiKey(null);
         setClient(null);
@@ -252,6 +299,12 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false;
+    if (previewMode) {
+      setBooting(false);
+      return () => {
+        cancelled = true;
+      };
+    }
     if (!activeProfile) {
       setBooting(false);
       return;
@@ -282,7 +335,7 @@ export function App() {
         setModels(dedupeModels(modelResponse.data));
       } catch (error) {
         if (!cancelled)
-          showToast(`无法恢复连接：${formatError(error)}`, "error");
+          showToast(`无法恢复提供商：${formatError(error)}`, "error");
       } finally {
         if (!cancelled) setBooting(false);
       }
@@ -290,7 +343,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [activeProfile, showToast]);
+  }, [activeProfile, previewMode, showToast]);
 
   useEffect(() => {
     if (!activeProfile) {
@@ -390,8 +443,8 @@ export function App() {
         setWorkspace("chat");
         showToast(
           modelResponse.data.length
-            ? `连接成功，发现 ${modelResponse.data.length} 个模型。`
-            : "连接成功，但当前 Key 没有可用模型。",
+            ? `提供商已添加，发现 ${modelResponse.data.length} 个模型。`
+            : "提供商已添加，但当前 Key 没有可用模型。",
           modelResponse.data.length ? "success" : "normal",
         );
       } catch (error) {
@@ -402,6 +455,25 @@ export function App() {
     },
     [showToast],
   );
+
+  const enterPreview = useCallback(() => {
+    setPreviewMode(true);
+    setBooting(false);
+    setProfiles([previewProfile]);
+    setActiveProfileId(previewProfile.id);
+    setApiKey("preview-only");
+    setClient(
+      new Grok2ApiClient({
+        baseUrl: previewProfile.baseUrl,
+        apiKey: "preview-only",
+        fetch: previewFetch,
+      }),
+    );
+    setModels(previewModels);
+    setWorkspace("chat");
+    setSessions([]);
+    setActiveSessionId(null);
+  }, []);
 
   const refreshModels = useCallback(async () => {
     if (!client) return;
@@ -415,6 +487,7 @@ export function App() {
   }, [client, showToast]);
 
   const disconnect = useCallback(() => {
+    setPreviewMode(false);
     client?.clearApiKey();
     setClient(null);
     setApiKey(null);
@@ -440,8 +513,8 @@ export function App() {
       setModels([]);
       showToast(
         removeHistory
-          ? "连接和本地数据已删除。"
-          : "连接已删除，本地历史已保留。",
+          ? "提供商和本地数据已删除。"
+          : "提供商已删除，本地历史已保留。",
         "success",
       );
     },
@@ -471,6 +544,7 @@ export function App() {
           connecting={connecting}
           onConnect={connect}
           onSelectProfile={switchProfile}
+          onPreview={enterPreview}
         />
         {toastView}
       </>
@@ -478,16 +552,17 @@ export function App() {
   }
 
   const page = workspaceMeta[workspace];
+  const creativeWorkspace = Boolean(["chat", "image", "video", "voice"].includes(workspace));
   return (
-    <div className="app-frame">
-      <header className="topbar">
+    <div className={`app-frame${creativeWorkspace ? " app-frame-creative" : ""}`}>
+      <header className={`topbar${creativeWorkspace ? " topbar-creative" : ""}`}>
         <div className="brand">
           <div className="brand-mark">
             <Sparkles size={16} />
           </div>
           <div className="brand-copy">
-            <div className="brand-name">Grok2API 创作工作台</div>
-            <div className="brand-meta">公共 API · 本地优先</div>
+            <div className="brand-name">创作控制台</div>
+            <div className="brand-meta">多提供商 · 本地优先</div>
           </div>
         </div>
         <div className="top-actions">
@@ -497,6 +572,16 @@ export function App() {
               {activeProfile.displayName ?? new URL(activeProfile.baseUrl).host}
             </span>
           </div>
+          {!creativeWorkspace ? (
+            <button
+              className="icon-button"
+              type="button"
+              title="历史"
+              onClick={() => setWorkspace("history")}
+            >
+              <HistoryIcon size={15} />
+            </button>
+          ) : null}
           <button
             className="icon-button"
             type="button"
@@ -508,35 +593,62 @@ export function App() {
           <button
             className="icon-button"
             type="button"
-            title="断开连接"
+            title="断开提供商"
             onClick={disconnect}
           >
             <X size={15} />
           </button>
         </div>
+        <div className="topbar-sub">
+          <button
+            className="icon-button"
+            type="button"
+            title="打开设置"
+            onClick={() => setWorkspace("settings")}
+          >
+            <Menu size={18} />
+          </button>
+          <div className="topbar-center-title">
+            创作控制台 <span>预览工作台</span>
+          </div>
+          <div className="topbar-github" aria-hidden="true">
+            <Github size={18} />
+          </div>
+        </div>
       </header>
       <div className="app-body">
-        <aside className="sidebar">
-          <div className="nav-label">工作区</div>
-          <nav className="nav-list" aria-label="主导航">
-            {navItems.map(({ id, icon: Icon }) => (
-              <button
-                key={id}
-                className={`nav-item${workspace === id ? " active" : ""}`}
-                type="button"
-                onClick={() => setWorkspace(id)}
-              >
-                <Icon size={17} />
-                <span>{workspaceMeta[id].label}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="sidebar-footer">
-            连接与历史均保存在本机。API Key 不会上传到第三方服务。
-          </div>
-        </aside>
-        <main className="workspace">
+        <main className={`workspace workspace-${workspace}`}>
           <div className="workspace-inner">
+            {creativeWorkspace ? (
+              <CreativeConsolePage
+                client={client}
+                apiKey={apiKey}
+                models={models}
+                scope={activeProfile.scope}
+                profiles={profiles}
+                activeProfileId={activeProfile.id}
+                providerName={activeProfile.displayName ?? activeProfile.baseUrl}
+                previewMode={previewMode}
+                initialMode={workspace as "chat" | "image" | "video" | "voice"}
+                onModeChange={(nextMode) => setWorkspace(nextMode)}
+                onSwitchProvider={switchProfile}
+                onOpenMenu={() => setWorkspace("settings")}
+              />
+            ) : (
+              <>
+            <nav className="mode-tabs" aria-label="创作模式">
+              {navItems.slice(0, 4).map(({ id, icon: Icon }) => (
+                <button
+                  key={id}
+                  className={`mode-tab${workspace === id ? " active" : ""}`}
+                  type="button"
+                  onClick={() => setWorkspace(id)}
+                >
+                  <Icon size={16} />
+                  <span>{workspaceMeta[id].label}</span>
+                </button>
+              ))}
+            </nav>
             <div className="page-heading">
               <div>
                 <div className="eyebrow">
@@ -560,11 +672,29 @@ export function App() {
                 ) : null}
               </div>
             </div>
+            {workspace !== "chat" ? (
+              <div className="provider-strip">
+                <div>
+                  <div className="provider-strip-title">提供商</div>
+                  <div className="provider-strip-hint">
+                    当前仅支持 grok2api 公共接口
+                  </div>
+                </div>
+                <ProviderTabs
+                  profiles={profiles}
+                  activeProfile={activeProfile}
+                  onSwitch={switchProfile}
+                />
+              </div>
+            ) : null}
             {workspace === "chat" ? (
               <ChatWorkspace
                 key={activeProfile.scope}
                 client={client}
                 models={models}
+                profiles={profiles}
+                activeProfile={activeProfile}
+                onSwitchProvider={switchProfile}
                 scope={activeProfile.scope}
                 sessions={sessions}
                 setSessions={setSessions}
@@ -616,6 +746,8 @@ export function App() {
                 models={models}
               />
             ) : null}
+              </>
+            )}
           </div>
         </main>
       </div>
@@ -629,7 +761,7 @@ function LoadingScreen() {
     <div className="connection-page">
       <div className="status-line">
         <LoaderCircle className="spinner" size={17} />
-        正在恢复本地连接…
+        正在恢复本地提供商…
       </div>
     </div>
   );
@@ -644,6 +776,7 @@ function ConnectionScreen(props: {
     displayName?: string;
   }) => Promise<void>;
   onSelectProfile: (profile: ConnectionProfile) => Promise<void>;
+  onPreview: () => void;
 }) {
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -663,7 +796,7 @@ function ConnectionScreen(props: {
       setError(
         caught instanceof Error
           ? caught.message
-          : "连接失败，请检查地址和 Key。",
+          : "提供商添加失败，请检查地址和 Key。",
       );
     }
   };
@@ -674,11 +807,11 @@ function ConnectionScreen(props: {
           <div className="intro-mark">
             <Layers3 size={21} />
           </div>
-          <div className="eyebrow">Private creative workspace</div>
-          <h1 className="intro-title">把你的 Grok2API，变成随身创作台。</h1>
+          <div className="eyebrow">私人创作空间</div>
+          <h1 className="intro-title">把你的 AI 提供商，变成随身创作台。</h1>
           <p className="intro-copy">
             填写已经部署的服务地址和客户端
-            Key。所有推理请求直达你的网关，会话和生成结果默认留在本机。
+            Key。所有推理请求直达你的提供商，会话和生成结果默认留在本机。
           </p>
           <div className="intro-points">
             <div className="intro-point">
@@ -696,9 +829,9 @@ function ConnectionScreen(props: {
           </div>
         </section>
         <section className="connection-form">
-          <div className="panel-title">连接你的网关</div>
+          <div className="panel-title">添加提供商</div>
           <p className="panel-subtitle">
-            首次连接会依次检查存活、就绪状态和模型权限。
+            添加前会依次检查存活、就绪状态和模型权限。
           </p>
           <form
             className="form-stack"
@@ -711,7 +844,6 @@ function ConnectionScreen(props: {
                 className="input"
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
-                placeholder="https://grok.example.com"
                 autoComplete="url"
                 inputMode="url"
               />
@@ -727,7 +859,6 @@ function ConnectionScreen(props: {
                   style={{ paddingRight: 70 }}
                   value={apiKey}
                   onChange={(event) => setApiKey(event.target.value)}
-                  placeholder="g2a_…"
                   type={showKey ? "text" : "password"}
                   autoComplete="off"
                 />
@@ -740,17 +871,13 @@ function ConnectionScreen(props: {
                   {showKey ? "隐藏" : "显示"}
                 </button>
               </div>
-              <span className="field-hint">
-                仅发送到上面填写的网关，不会复制到剪贴板。
-              </span>
             </label>
             <label className="field">
-              <span className="field-label">连接名称（可选）</span>
+              <span className="field-label">提供商名称（可选）</span>
               <input
                 className="input"
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="我的 VPS"
                 maxLength={40}
               />
             </label>
@@ -761,6 +888,16 @@ function ConnectionScreen(props: {
               </div>
             ) : null}
             <div className="form-actions">
+              {__DEV_BUILD__ ? (
+                <button
+                  className="button ghost"
+                  type="button"
+                  onClick={props.onPreview}
+                >
+                  <Sparkles size={14} />
+                  预览界面
+                </button>
+              ) : null}
               <button
                 className="button primary"
                 disabled={props.connecting}
@@ -771,14 +908,14 @@ function ConnectionScreen(props: {
                 ) : (
                   <ChevronRight size={15} />
                 )}
-                {props.connecting ? "连接中…" : "测试并连接"}
+                {props.connecting ? "检查中…" : "测试并添加"}
               </button>
             </div>
           </form>
           {props.profiles.length > 0 ? (
             <div className="connection-note">
               <div style={{ marginBottom: 9, color: "var(--muted)" }}>
-                已有连接
+                已有提供商
               </div>
               {props.profiles.slice(0, 3).map((profile) => (
                 <button
@@ -790,7 +927,7 @@ function ConnectionScreen(props: {
                 >
                   <span className="profile-info">
                     <span className="profile-name">
-                      {profile.displayName ?? "未命名连接"}
+                      {profile.displayName ?? "未命名提供商"}
                     </span>
                     <span className="profile-url">{profile.baseUrl}</span>
                   </span>
@@ -800,8 +937,8 @@ function ConnectionScreen(props: {
             </div>
           ) : null}
           <div className="connection-note">
-            支持 Android 8.0（API 26）及以上。当前版本不调用
-            `/api/admin/v1/*`，本地媒体上传暂不启用。
+            支持 Android 8.0（API 26）及以上。当前仅支持 grok2api 公共接口，
+            不调用管理端接口，本地媒体上传暂不启用。
           </div>
         </section>
       </div>
@@ -809,9 +946,50 @@ function ConnectionScreen(props: {
   );
 }
 
+function ProviderTabs(props: {
+  profiles: ConnectionProfile[];
+  activeProfile: ConnectionProfile;
+  onSwitch: (profile: ConnectionProfile) => Promise<void>;
+}) {
+  if (!props.profiles.length) return null;
+  return (
+    <div className="provider-tabs" role="tablist" aria-label="选择提供商">
+      {props.profiles.map((profile) => {
+        const label = profile.displayName?.trim() || (() => {
+          try {
+            return new URL(profile.baseUrl).host;
+          } catch {
+            return "未命名提供商";
+          }
+        })();
+        const active = profile.id === props.activeProfile.id;
+        return (
+          <button
+            key={profile.id}
+            className={`provider-tab${active ? " active" : ""}`}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            title={profile.baseUrl}
+            onClick={() => {
+              if (!active) void props.onSwitch(profile);
+            }}
+          >
+            <span className="provider-tab-dot" aria-hidden="true" />
+            <span>{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ChatWorkspace(props: {
   client: Grok2ApiClient;
   models: Model[];
+  profiles: ConnectionProfile[];
+  activeProfile: ConnectionProfile;
+  onSwitchProvider: (profile: ConnectionProfile) => Promise<void>;
   scope: string;
   sessions: ChatSession[];
   setSessions: Dispatch<SetStateAction<ChatSession[]>>;
@@ -1163,46 +1341,10 @@ function ChatWorkspace(props: {
       <section className="panel chat-panel">
         <div className="chat-toolbar">
           <div className="toolbar-group">
-            <span className="toolbar-label">模型</span>
-            <select
-              className="toolbar-select"
-              value={chatModels.some((item) => item.id === model) ? model : ""}
-              onChange={(event) => setModel(event.target.value)}
-            >
-              <option value="">手动输入模型 ID</option>
-              {chatModels.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.id}
-                </option>
-              ))}
-            </select>
-            {!chatModels.some((item) => item.id === model) ? (
-              <input
-                className="input"
-                style={{ height: 32, maxWidth: 210, fontSize: 11 }}
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-                placeholder="例如 grok-4.5"
-              />
-            ) : null}
-          </div>
-          <div className="toolbar-group">
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={webSearch}
-                onChange={(event) => setWebSearch(event.target.checked)}
-              />
-              Web Search
-            </label>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={xSearch}
-                onChange={(event) => setXSearch(event.target.checked)}
-              />
-              X Search
-            </label>
+            <span className="toolbar-label">当前会话</span>
+            <span className="toolbar-session-name">
+              {session?.title ?? "新会话"}
+            </span>
           </div>
         </div>
         <div className="chat-messages">
@@ -1222,7 +1364,7 @@ function ChatWorkspace(props: {
                   开始一段新对话
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12 }}>
-                  Enter 发送，Shift + Enter 换行。连接切换后历史完全隔离。
+                  Enter 发送，Shift + Enter 换行。提供商切换后历史完全隔离。
                 </div>
               </div>
             </div>
@@ -1282,11 +1424,42 @@ function ChatWorkspace(props: {
             </div>
           </form>
           <div className="composer-options">
-            <label className="toolbar-label">推理</label>
+            <div className="composer-provider">
+              <ProviderTabs
+                profiles={props.profiles}
+                activeProfile={props.activeProfile}
+                onSwitch={props.onSwitchProvider}
+              />
+              <span className="provider-inline-hint">仅支持 grok2api</span>
+            </div>
+            <div className="composer-model">
+              <select
+                className="toolbar-select"
+                value={chatModels.some((item) => item.id === model) ? model : ""}
+                onChange={(event) => setModel(event.target.value)}
+                aria-label="选择模型"
+              >
+                <option value="">手动输入模型 ID</option>
+                {chatModels.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.id}
+                  </option>
+                ))}
+              </select>
+              {!chatModels.some((item) => item.id === model) ? (
+                <input
+                  className="input composer-model-input"
+                  value={model}
+                  onChange={(event) => setModel(event.target.value)}
+                  placeholder="例如 grok-4.5"
+                  aria-label="手动输入模型 ID"
+                />
+              ) : null}
+            </div>
             <select
-              className="toolbar-select"
-              style={{ height: 27, minWidth: 100 }}
+              className="toolbar-select reasoning-select"
               value={reasoning}
+              aria-label="推理级别"
               onChange={(event) =>
                 setReasoning(event.target.value as ReasoningEffort)
               }
@@ -1299,26 +1472,41 @@ function ChatWorkspace(props: {
                 ),
               )}
             </select>
-            <span className="faint" style={{ fontSize: 10 }}>
-              {streaming ? "正在流式生成…" : "store: false"}
-            </span>
             <button
-              className="tiny-button"
+              className={`composer-icon${webSearch ? " active" : ""}`}
               type="button"
+              title="Web Search"
+              aria-pressed={webSearch}
+              onClick={() => setWebSearch((value) => !value)}
+            >
+              <Globe2 size={15} />
+            </button>
+            <button
+              className={`composer-icon${xSearch ? " active" : ""}`}
+              type="button"
+              title="X Search"
+              aria-pressed={xSearch}
+              onClick={() => setXSearch((value) => !value)}
+            >
+              <span className="x-glyph">X</span>
+            </button>
+            <button
+              className="composer-icon"
+              type="button"
+              title="清空会话"
               onClick={clearSession}
               disabled={!session?.messages.length}
             >
               <Trash2 size={12} />
-              清空
             </button>
             <button
-              className="tiny-button"
+              className="composer-icon danger"
               type="button"
+              title="删除会话"
               onClick={deleteSession}
               disabled={!session}
             >
               <X size={12} />
-              删除会话
             </button>
           </div>
         </div>
@@ -1434,7 +1622,7 @@ function ChatMessageView(props: {
         {isUser ? "你" : <Sparkles size={13} />}
       </div>
       <div className="message-content">
-        <div className="message-meta">{isUser ? "USER" : "GROK"}</div>
+        <div className="message-meta">{isUser ? "你" : "助手"}</div>
         {props.message.reasoning ? (
           <details className="reasoning">
             <summary>思考过程</summary>
@@ -1776,7 +1964,7 @@ function ImageWorkspace(props: {
                 key={`${asset.url}-${index}`}
                 url={asset.url}
                 label={
-                  asset.source === "base64" ? "Base64 图片" : "网关媒体 URL"
+                  asset.source === "base64" ? "Base64 图片" : "提供商媒体 URL"
                 }
                 showToast={props.showToast}
               />
@@ -2034,7 +2222,7 @@ function VideoWorkspace(props: {
   const saveVideo = async (job: VideoJob) => {
     if (!job.videoUrl) return;
     try {
-      await saveMedia(job.videoUrl, "grok2api-video.mp4");
+      await saveMedia(job.videoUrl, "provider-video.mp4");
       props.showToast("视频已保存到系统媒体库。", "success");
     } catch (error) {
       props.showToast(formatError(error), "error");
@@ -2043,7 +2231,7 @@ function VideoWorkspace(props: {
   const shareVideo = async (job: VideoJob) => {
     if (!job.videoUrl) return;
     try {
-      await shareMedia(job.videoUrl, "Grok2API 视频", "grok2api-video.mp4");
+      await shareMedia(job.videoUrl, "视频创作结果", "provider-video.mp4");
     } catch (error) {
       props.showToast(formatError(error), "error");
     }
@@ -2471,7 +2659,7 @@ function VoiceWorkspace(props: {
         ? "ogg"
         : "mp3";
     try {
-      await saveMedia(audioUrl, `grok2api-tts.${extension}`);
+      await saveMedia(audioUrl, `provider-tts.${extension}`);
       props.showToast("音频已保存到系统媒体库。", "success");
     } catch (error) {
       props.showToast(formatError(error), "error");
@@ -2480,7 +2668,7 @@ function VoiceWorkspace(props: {
   const shareAudio = async () => {
     if (!audioUrl) return;
     try {
-      await shareMedia(audioUrl, "Grok2API TTS", "grok2api-tts.mp3");
+      await shareMedia(audioUrl, "语音创作结果", "provider-tts.mp3");
     } catch (error) {
       props.showToast(formatError(error), "error");
     }
@@ -2778,7 +2966,7 @@ function MediaResult(props: {
 }) {
   const save = async () => {
     try {
-      await saveMedia(props.url, "grok2api-image.png");
+      await saveMedia(props.url, "provider-image.png");
       props.showToast("图片已保存到系统媒体库。", "success");
     } catch (error) {
       props.showToast(formatError(error), "error");
@@ -2786,7 +2974,7 @@ function MediaResult(props: {
   };
   const share = async () => {
     try {
-      await shareMedia(props.url, "Grok2API 创作结果", "grok2api-image.png");
+      await shareMedia(props.url, "图片创作结果", "provider-image.png");
     } catch (error) {
       props.showToast(formatError(error), "error");
     }
@@ -2833,7 +3021,7 @@ function HistoryWorkspace(props: {
         <div className="panel-header">
           <div>
             <h2 className="panel-title">本地会话</h2>
-            <p className="panel-subtitle">当前连接空间下的最近 50 个会话。</p>
+            <p className="panel-subtitle">当前提供商空间下的最近 50 个会话。</p>
           </div>
           <span className="faint" style={{ fontSize: 11 }}>
             {props.sessions.length} / 50
@@ -2912,9 +3100,9 @@ function SettingsWorkspace(props: {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2 className="panel-title">连接配置</h2>
+            <h2 className="panel-title">提供商配置</h2>
             <p className="panel-subtitle">
-              Key 只用于当前网关请求；切换 profile 会隔离模型、会话和任务。
+              Key 只用于当前提供商请求；切换提供商会隔离模型、会话和任务。
             </p>
           </div>
           <KeyRound size={17} className="muted" />
@@ -2928,7 +3116,7 @@ function SettingsWorkspace(props: {
               >
                 <div className="profile-info">
                   <div className="profile-name">
-                    {profile.displayName ?? "未命名连接"}{" "}
+                    {profile.displayName ?? "未命名提供商"}{" "}
                     {profile.id === props.activeProfile.id ? (
                       <span
                         className="success-text"
@@ -2957,7 +3145,7 @@ function SettingsWorkspace(props: {
           <div className="form-footer" style={{ marginTop: 14 }}>
             <button className="button" type="button" onClick={props.onAdd}>
               <Plus size={14} />
-              添加连接
+              添加提供商
             </button>
           </div>
         </div>
@@ -2973,7 +3161,7 @@ function SettingsWorkspace(props: {
         <div className="panel-body">
           <div className="status-line success">
             <span className="connection-dot" />
-            已连接 · {props.models.length} 个模型
+            已就绪 · {props.models.length} 个模型
           </div>
           <div
             style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 13 }}
@@ -3005,7 +3193,7 @@ function SettingsWorkspace(props: {
           <div>
             <h2 className="panel-title">数据与安全</h2>
             <p className="panel-subtitle">
-              清除连接时可同时删除该 profile 的会话和视频任务。
+            清除提供商时可同时删除该提供商的会话和视频任务。
             </p>
           </div>
           <ShieldCheck size={17} className="muted" />
@@ -3017,7 +3205,7 @@ function SettingsWorkspace(props: {
               checked={removeHistory}
               onChange={(event) => setRemoveHistory(event.target.checked)}
             />
-            删除连接时同时删除本地历史与媒体索引
+            删除提供商时同时删除本地历史与媒体索引
           </label>
           {confirmDelete ? (
             <div
@@ -3059,7 +3247,7 @@ function SettingsWorkspace(props: {
                 onClick={() => setConfirmDelete(true)}
               >
                 <Trash2 size={14} />
-                删除当前连接
+                删除当前提供商
               </button>
             </div>
           )}
@@ -3136,7 +3324,7 @@ function formatError(error: unknown): string {
   if (error instanceof GrokApiError) {
     if (error.status === 401 || error.status === 403)
       return "Key 无效或没有该模型的权限，请检查客户端 API Key。";
-    if (error.status === 404) return "当前 grok2api 版本不支持此能力（404）。";
+    if (error.status === 404) return "当前提供商版本不支持此能力（404）。";
     if (error.status === 429)
       return `请求过于频繁${error.retryAfterMs ? `，请 ${Math.ceil(error.retryAfterMs / 1000)} 秒后重试` : "，请稍后重试"}。`;
     if (error.status === 503)

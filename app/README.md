@@ -34,7 +34,7 @@ pnpm cap:sync
 ## 已知限制
 
 - 公共 `/v1/models` 在旧版只返回 OpenAI 风格字段，没有 provider/capability；客户端使用服务端可选字段、内置模型名 fallback 和手动输入，不把猜测当成硬权限。
-- 本地图片/视频上传暂不启用。视频 MVP 只接受公网 `image.url`、参考 URL；若服务端只返回 `/v1/videos/{request_id}/content`，播放器/下载请求必须带 Bearer。
+- 图片编辑支持在 APK 内选择本地图片并以内存 `data:image/*` 提交公共 `/v1/images/edits`；视频 MVP 仍只接受公网 `image.url`、参考 URL，未启用管理端 staging 上传。若服务端只返回 `/v1/videos/{request_id}/content`，播放器/下载请求必须带 Bearer。
 - 视频轮询在页面前台运行，切后台会停止页面连接并在恢复后继续；长时间后台任务应在后续版本接入 WorkManager。
 - Android 原生 SecureStore 已提供 Keystore 加密实现；浏览器 fallback 为开发便利方案，刷新浏览器后需要重新输入 Key。
 - Android 壳使用自定义 NativeHttp 传输绕过 WebView CORS，并保持 Responses SSE 的逐块读取和取消；普通请求、multipart 和媒体保存也不依赖网关开放 `https://localhost` CORS。
