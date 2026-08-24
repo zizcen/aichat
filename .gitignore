@@ -1,0 +1,36 @@
+# Research checkout and archives are local context, not application source.
+/_research/
+
+# Node / Vite
+**/node_modules/
+**/dist/
+**/.vite/
+**/.cache/
+**/*.tsbuildinfo
+pnpm-lock.yaml
+!app/pnpm-lock.yaml
+package-lock.json
+
+# Capacitor / Android generated output
+app/android/.gradle/
+app/android/build/
+app/android/capacitor-cordova-android-plugins/
+app/android/app/build/
+app/android/.idea/
+app/android/local.properties
+app/android/app/src/main/assets/public/
+app/android/app/src/main/assets/capacitor.config.json
+
+# Local secrets and runtime files
+.env
+.env.*
+!.env.example
+*.log
+*.jks
+*.keystore
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
