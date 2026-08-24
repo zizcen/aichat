@@ -1,5 +1,12 @@
 Grok2API Creative Workbench v0.1.0
 
+Current UI test build (commit 32589e9):
+  grok2api-creative-workbench-v0.1.0-debug.apk
+
+The signed release APK listed below is the previously signed package. Do not
+use it to validate the current creative-console UI until the local keystore
+password is supplied and a new signed Release build is produced.
+
 Install the signed release APK on Android 8.0/API 26 or newer:
   grok2api-creative-workbench-v0.1.0-release.apk
 
