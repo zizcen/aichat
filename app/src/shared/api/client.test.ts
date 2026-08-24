@@ -23,7 +23,7 @@ describe("Grok2ApiClient", () => {
 
   it("parses image URL/base64, video status, and JSON Responses", async () => {
     const fetcher = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(response('{"created":1,"data":[{"url":"/v1/media/images/i1"},{"b64_json":"AA=="}]}', { headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(response('{"created":1,"data":[{"url":"http://127.0.0.1:8000/v1/media/images/i1"},{"b64_json":"AA=="}]}', { headers: { "content-type": "application/json" } }))
       .mockResolvedValueOnce(response('{"request_id":"v1"}', { headers: { "content-type": "application/json" } }))
       .mockResolvedValueOnce(response('{"status":"done","progress":101,"video":{"url":"/v1/media/videos/v1"}}', { headers: { "content-type": "application/json" } }))
       .mockResolvedValueOnce(response('{"id":"r1","output_text":"hello"}', { headers: { "content-type": "application/json" } }));

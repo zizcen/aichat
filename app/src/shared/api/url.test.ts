@@ -38,6 +38,9 @@ describe("public API URL helpers", () => {
     expect(resolveMediaUrl("https://example.test", "data:image/png;base64,AA")).toBe(
       "data:image/png;base64,AA",
     );
+    expect(resolveMediaUrl("https://example.test", "http://127.0.0.1:8000/v1/media/images/internal-id")).toBe(
+      "https://example.test/v1/media/images/internal-id",
+    );
     expect(() => resolveMediaUrl("https://example.test", "javascript:alert(1)")).toThrow(ApiUrlError);
     expect(imageDataUrl("AA==")).toBe("data:image/png;base64,AA==");
   });
