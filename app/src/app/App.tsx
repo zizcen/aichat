@@ -553,8 +553,9 @@ export function App() {
 
   const page = workspaceMeta[workspace];
   const creativeWorkspace = Boolean(["chat", "image", "video", "voice"].includes(workspace));
+  const workspaceShell = true;
   return (
-    <div className={`app-frame${creativeWorkspace ? " app-frame-creative" : ""}`}>
+    <div className={`app-frame${workspaceShell ? " app-frame-workspace" : ""}${creativeWorkspace ? " app-frame-creative" : ""}`}>
       <header className={`topbar${creativeWorkspace ? " topbar-creative" : ""}`}>
         <div className="brand">
           <div className="brand-mark">
@@ -636,6 +637,20 @@ export function App() {
               />
             ) : (
               <>
+            <div className="workspace-page-heading flex items-start gap-2">
+              <button
+                className="icon-button workspace-menu-button"
+                type="button"
+                title={workspace === "settings" ? "返回创作" : "打开设置"}
+                onClick={() => setWorkspace((current) => current === "settings" ? "chat" : "settings")}
+              >
+                <Menu size={18} />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h1 className="page-title">{page.label}</h1>
+                <p className="page-description">{page.description}</p>
+              </div>
+            </div>
             <nav className="mode-tabs" aria-label="创作模式">
               {navItems.slice(0, 4).map(({ id, icon: Icon }) => (
                 <button
@@ -649,29 +664,6 @@ export function App() {
                 </button>
               ))}
             </nav>
-            <div className="page-heading">
-              <div>
-                <div className="eyebrow">
-                  {workspace === "settings"
-                    ? "Preferences"
-                    : "Creative Console"}
-                </div>
-                <h1 className="page-title">{page.label}</h1>
-                <p className="page-description">{page.description}</p>
-              </div>
-              <div className="heading-actions">
-                {workspace === "chat" ? (
-                  <button
-                    className="button primary"
-                    type="button"
-                    onClick={() => setActiveSessionId(null)}
-                  >
-                    <Plus size={15} />
-                    新建会话
-                  </button>
-                ) : null}
-              </div>
-            </div>
             {workspace !== "chat" ? (
               <div className="provider-strip">
                 <div>
