@@ -64,6 +64,8 @@ import type {
 } from "@/shared/api/types";
 import { normalizeBaseUrl } from "@/shared/api/url";
 import { saveMedia, shareMedia } from "@/shared/platform/media";
+import { UpdatePrompt } from "@/shared/update/update-prompt";
+import { useAppUpdate, type AppUpdateController } from "@/shared/update/use-app-update";
 import { CreativeConsolePage } from "@/features/creative-console/creative-console-page";
 import {
   activateProfile,
@@ -224,6 +226,7 @@ const markdownTags = [
 ];
 
 export function App() {
+  const update = useAppUpdate();
   const [profiles, setProfiles] = useState<ConnectionProfile[]>(
     () => readProfiles().profiles,
   );
@@ -529,11 +532,13 @@ export function App() {
       {toast.message}
     </div>
   ) : null;
+  const updateView = <UpdatePrompt update={update} />;
   if (booting)
     return (
       <>
         <LoadingScreen />
         {toastView}
+        {updateView}
       </>
     );
   if (!client || !activeProfile || !apiKey) {
@@ -547,6 +552,7 @@ export function App() {
           onPreview={enterPreview}
         />
         {toastView}
+        {updateView}
       </>
     );
   }
@@ -736,6 +742,7 @@ export function App() {
                 onDelete={deleteCurrentProfile}
                 onAdd={disconnect}
                 models={models}
+                update={update}
               />
             ) : null}
               </>
@@ -744,6 +751,7 @@ export function App() {
         </main>
       </div>
       {toastView}
+      {updateView}
     </div>
   );
 }
@@ -3084,6 +3092,7 @@ function SettingsWorkspace(props: {
   onDelete: (removeHistory: boolean) => Promise<void>;
   onAdd: () => void;
   models: Model[];
+  update: AppUpdateController;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [removeHistory, setRemoveHistory] = useState(true);
@@ -3142,6 +3151,7 @@ function SettingsWorkspace(props: {
           </div>
         </div>
       </section>
+      <UpdateSettingsPanel update={props.update} />
       <section className="panel">
         <div className="panel-header">
           <div>
@@ -3246,6 +3256,62 @@ function SettingsWorkspace(props: {
         </div>
       </section>
     </div>
+  );
+}
+
+function UpdateSettingsPanel({ update }: { update: AppUpdateController }) {
+  const hasRelease = Boolean(update.info);
+  const status = update.checking
+    ? "正在检查…"
+    : update.error
+      ? update.error
+      : !hasRelease
+        ? "尚未检查"
+        : update.available
+          ? `发现新版本 ${update.info?.latestVersion}`
+          : `已是最新（${update.currentVersion}）`;
+  return (
+    <section className="panel update-settings-panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">应用更新</h2>
+          <p className="panel-subtitle">从 GitHub Release 检查创作工作台的正式版本。</p>
+        </div>
+        <RefreshCw size={17} className={update.checking ? "spinner muted" : "muted"} />
+      </div>
+      <div className="panel-body">
+        <div className="update-settings-row">
+          <div>
+            <div className="field-label">当前版本</div>
+            <div className="update-settings-version">v{update.currentVersion}</div>
+          </div>
+          <div className={`status-line ${update.error ? "error" : update.available ? "warning" : "success"}`}>
+            {status}
+          </div>
+        </div>
+        {update.installState === "permission_required" ? (
+          <div className="field-hint update-settings-hint">请在系统设置中允许安装未知来源应用，然后再次点击更新。</div>
+        ) : null}
+        <div className="form-footer update-settings-actions">
+          <button className="button small" type="button" onClick={() => void update.checkNow()} disabled={update.checking}>
+            <RefreshCw size={13} />
+            检查更新
+          </button>
+          {update.info ? (
+            <button className="button ghost small" type="button" onClick={update.openRelease}>
+              <ExternalLink size={13} />
+              打开 Release
+            </button>
+          ) : null}
+          {update.available ? (
+            <button className="button primary small" type="button" onClick={() => void update.install()} disabled={update.installState === "downloading" || update.installState === "installing"}>
+              <Download size={13} />
+              {update.installState === "permission_required" ? "重新安装" : "立即更新"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }
 

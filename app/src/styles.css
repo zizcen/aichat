@@ -328,6 +328,24 @@ a { color: inherit; }
 .profile-actions { display: flex; gap: 5px; flex: 0 0 auto; }
 
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 30; max-width: min(380px, calc(100vw - 40px)); padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 9px; background: #17202a; box-shadow: 0 16px 34px rgba(0,0,0,.35); color: var(--text); font-size: 12px; line-height: 1.45; }
+.update-prompt { position: fixed; right: 20px; bottom: 20px; z-index: 32; width: min(440px, calc(100vw - 28px)); display: flex; gap: 11px; padding: 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: #121212; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+.update-prompt-icon { width: 30px; height: 30px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--accent); background: #1b1b1b; }
+.update-prompt-content { min-width: 0; flex: 1; }
+.update-prompt-title { color: var(--text); font-size: 13px; font-weight: 650; }
+.update-prompt-title span { color: var(--accent); }
+.update-prompt-copy { margin-top: 4px; color: var(--muted); font-size: 11px; }
+.update-prompt-notes { margin: 9px 0 0; color: #c7c7c7; font-size: 11px; line-height: 1.55; }
+.update-prompt-message { margin-top: 8px; color: var(--warning); font-size: 11px; line-height: 1.45; }
+.update-prompt-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.update-settings-panel { grid-column: 1 / -1; }
+.update-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.update-settings-version { margin-top: 5px; color: var(--text); font-size: 14px; font-weight: 650; }
+.update-settings-hint { margin-top: 12px; color: var(--warning); }
+.update-settings-actions { margin-top: 14px; }
+@media (max-width: 560px) {
+  .update-prompt { right: 12px; bottom: 12px; width: calc(100vw - 24px); }
+  .update-settings-row { align-items: flex-start; flex-direction: column; }
+}
 .spinner { animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 

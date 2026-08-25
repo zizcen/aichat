@@ -38,4 +38,5 @@ pnpm cap:sync
 - 视频轮询在页面前台运行，切后台会停止页面连接并在恢复后继续；长时间后台任务应在后续版本接入 WorkManager。
 - Android 原生 SecureStore 已提供 Keystore 加密实现；浏览器 fallback 为开发便利方案，刷新浏览器后需要重新输入 Key。
 - Android 壳使用自定义 NativeHttp 传输绕过 WebView CORS，并保持 Responses SSE 的逐块读取和取消；普通请求、multipart 和媒体保存也不依赖网关开放 `https://localhost` CORS。
+- 应用更新从 GitHub 正式 Release 获取，启动或切回前台会检查版本；Android 下载后交给系统安装器，首次使用可能需要允许本应用安装未知来源应用。
 - 移动端 STT 文件上限为 10 MiB；大体积图片响应优先使用服务端 URL，避免跨 JS/native bridge 复制过大的 Base64。

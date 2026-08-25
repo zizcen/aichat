@@ -7,5 +7,6 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SecureStorePlugin.class);
         registerPlugin(NativeHttpPlugin.class);
         registerPlugin(MediaStorePlugin.class);
+        registerPlugin(AppUpdaterPlugin.class);
     }
 }

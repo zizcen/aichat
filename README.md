@@ -29,9 +29,9 @@ pnpm cap:sync
 
 Android 工程已设置 `minSdkVersion 26`、关闭自动备份和明文网络。API Key 在 Android 壳中由自定义 `SecureStore` Capacitor 插件使用 Android Keystore 加密；浏览器开发态只将加密密文放在本地存储，并把会话密钥留在当前浏览器会话中。
 
-Android 构建要求 JDK 21+ 和 Android SDK 35；本机已完成创作工作台 v0.1.0 构建。真实 VPS 联调、真机弱网和发布渠道签名仍需在目标环境补齐。
+Android 构建要求 JDK 21+ 和 Android SDK 35；本机已完成创作工作台 v0.1.1 构建。真实 VPS 联调、真机弱网和发布渠道签名仍需在目标环境补齐。
 
-当前本地构建的 APK 位于 `release/creative-workbench-v0.1.0.apk`，校验值见 `release/SHA256SUMS.txt`。
+当前本地构建的 APK 位于 `release/creative-workbench-v0.1.1.apk`，校验值见 `release/SHA256SUMS.txt`。
 
 ## MVP 范围
 
@@ -41,7 +41,7 @@ Android 构建要求 JDK 21+ 和 Android SDK 35；本机已完成创作工作台
 - 视频：异步 request ID、持久化索引、3 秒轮询、pending/done/failed、公网首帧 URL。
 - 语音：TTS 二进制和 JSON+Base64、STT 系统文件选择器 multipart。
 
-图片编辑、视频编辑/延长、录音和 Realtime WebSocket 属于后续版本。本 MVP 不调用任何 `/api/admin/v1/*`，也不上传本地图片/视频到管理端 staging。
+视频编辑/延长、录音和 Realtime WebSocket 属于后续版本。本 MVP 不调用任何 `/api/admin/v1/*`，也不上传本地图片/视频到管理端 staging。
 
 ## 安全边界
 
