@@ -113,6 +113,7 @@ export type CreativeConsolePageProps = {
 
 export function CreativeConsolePage(props: CreativeConsolePageProps) {
   const { t } = useTranslation();
+  useKeyboardInset();
   const [mode, setMode] = useState<CreativeMode>(props.initialMode ?? "chat");
   const [selectedModels, setSelectedModels] = useState<Record<CreativeMode, string>>({ chat: "", image: "", video: "", voice: "" });
   const [chatToolbarElement, setChatToolbarElement] = useState<HTMLDivElement | null>(null);
@@ -175,7 +176,7 @@ export function CreativeConsolePage(props: CreativeConsolePageProps) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5 overflow-hidden">
+    <div className="creative-console-page flex h-full min-h-0 flex-col gap-5 overflow-hidden">
       <div className="creative-page-heading flex items-start gap-2">
         {props.onOpenMenu ? (
           <Button type="button" variant="ghost" size="icon" className="mt-0.5 size-9 shrink-0 text-muted-foreground" onClick={props.onOpenMenu} aria-label="打开设置">
@@ -1570,6 +1571,28 @@ function WelcomeState({ title }: { title: string }) {
       <h2 className="max-w-2xl text-xl font-medium tracking-tight text-muted-foreground sm:text-2xl">{title}</h2>
     </div>
   );
+}
+
+function useKeyboardInset(): void {
+  useEffect(() => {
+    const root = document.documentElement;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      const inset = Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
+      root.style.setProperty("--keyboard-inset", inset >= 80 ? `${inset}px` : "0px");
+    };
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      root.style.removeProperty("--keyboard-inset");
+    };
+  }, []);
 }
 
 function ComposerActionButtons({ value, actions, onChange }: { value: string; actions: readonly (readonly [string, string])[]; onChange: (value: string) => void }) {

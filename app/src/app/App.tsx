@@ -603,8 +603,8 @@ export function App() {
           <button
             className="icon-button"
             type="button"
-            title="打开设置"
-            onClick={() => setWorkspace("settings")}
+            title={workspace === "settings" ? "返回创作" : "打开设置"}
+            onClick={() => setWorkspace((current) => current === "settings" ? "chat" : "settings")}
           >
             <Menu size={18} />
           </button>
