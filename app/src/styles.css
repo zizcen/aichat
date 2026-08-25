@@ -25,6 +25,7 @@
   --warning: #f6c875;
   --blue: #a3a3a3;
   --radius: 8px;
+  --keyboard-inset: 0px;
   /* Neutral tokens used by the upstream creative console components. */
   --background: #050505;
   --foreground: #f4f4f5;
@@ -111,6 +112,7 @@ a { color: inherit; }
 .app-frame-creative .app-body { height: 100dvh; }
 .app-frame-creative .workspace { padding-bottom: 12px; }
 .app-frame-creative .workspace-inner { height: 100%; min-height: 0; overflow: hidden; }
+.creative-console-page form { transform: translateY(calc(-1 * var(--keyboard-inset))); transition: transform 160ms ease-out; }
 .topbar { min-height: 68px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 22px 0; border-bottom: 1px solid var(--line); background: rgba(5,5,5,.94); position: sticky; top: 0; z-index: 10; backdrop-filter: blur(18px); }
 .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line-strong); color: var(--text); border-radius: 8px; background: var(--panel); }
@@ -307,6 +309,10 @@ a { color: inherit; }
 .session-table td { color: #d8e0e9; }
 .session-table tr:last-child td { border-bottom: 0; }
 .settings-grid { display: grid; gap: 16px; max-width: 820px; }
+.settings-grid .panel { border-color: var(--border); background: color-mix(in srgb, var(--card) 92%, transparent); }
+.settings-grid .panel-header { background: transparent; border-bottom-color: var(--border); }
+.settings-grid .profile-row { border-color: var(--border); background: color-mix(in srgb, var(--secondary) 55%, transparent); }
+.settings-grid .profile-row:hover { background: color-mix(in srgb, var(--secondary) 78%, transparent); }
 .profile-list { display: grid; gap: 8px; }
 .profile-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 .profile-info { min-width: 0; }

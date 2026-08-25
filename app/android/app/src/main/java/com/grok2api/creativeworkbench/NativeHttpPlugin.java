@@ -94,18 +94,20 @@ public class NativeHttpPlugin extends Plugin {
                         JSObject event = new JSObject();
                         event.put("requestId", requestId);
                         event.put("data", Base64.encodeToString(buffer, 0, count, Base64.NO_WRAP));
-                        notifyListeners("streamChunk", event);
+                        // Retain chunks while the WebView is paused in the
+                        // background; the JS listener consumes them on resume.
+                        notifyListeners("streamChunk", event, true);
                     }
                 }
                 JSObject end = new JSObject();
                 end.put("requestId", requestId);
-                notifyListeners("streamEnd", end);
+                notifyListeners("streamEnd", end, true);
             } catch (Exception error) {
                 if (started) {
                     JSObject event = new JSObject();
                     event.put("requestId", requestId);
                     event.put("message", error.getMessage() == null ? "Native stream failed" : error.getMessage());
-                    notifyListeners("streamError", event);
+                    notifyListeners("streamError", event, true);
                 } else {
                     call.reject("Native request failed", error);
                 }
