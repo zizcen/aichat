@@ -177,11 +177,11 @@ a { color: inherit; }
 .panel-body { padding: 18px; }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
-.error-text { color: var(--danger); }
+.error-text { color: #b8a7aa; }
 .success-text { color: var(--accent); }
 .warning-text { color: var(--warning); }
 .status-line { display: flex; align-items: center; gap: 8px; min-height: 20px; font-size: 12px; color: var(--muted); }
-.status-line.error { color: var(--danger); }
+.status-line.error { color: #b8a7aa; }
 .status-line.success { color: var(--accent); }
 .notice-error { border: 1px solid #4a272c; border-radius: 8px; background: #090909; color: #b8a7aa; }
 .notice-error svg { color: #9b5b63; }
@@ -366,7 +366,7 @@ a { color: inherit; }
 .settings-row-title { color: var(--text); font-size: 12px; font-weight: 600; }
 .settings-row-description { margin: 4px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .settings-checkbox { width: 17px; height: 17px; flex: 0 0 auto; accent-color: var(--accent-strong); }
-.settings-confirm-row { align-items: flex-start; flex-direction: column; padding: 15px 4px; color: var(--danger); font-size: 11px; line-height: 1.45; }
+.settings-confirm-row { align-items: flex-start; flex-direction: column; padding: 15px 4px; color: #b8a7aa; font-size: 11px; line-height: 1.45; }
 .settings-danger-row { border-bottom: 0; }
 .settings-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .update-settings-actions { margin-top: 14px; }
@@ -393,7 +393,7 @@ a { color: inherit; }
 .update-prompt-title span { color: var(--accent); }
 .update-prompt-copy { margin-top: 4px; color: var(--muted); font-size: 11px; }
 .update-prompt-notes { margin: 9px 0 0; color: #c7c7c7; font-size: 11px; line-height: 1.55; }
-.update-prompt-message { margin-top: 8px; color: var(--warning); font-size: 11px; line-height: 1.45; }
+.update-prompt-message { margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .update-prompt-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .update-settings-panel { grid-column: 1 / -1; }
 .update-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }

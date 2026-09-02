@@ -3122,7 +3122,7 @@ function SettingsWorkspace(props: {
           <div className="settings-provider-danger">
           {confirmDelete ? (
             <div className="settings-confirm-row">
-              <div className="error-text">确认删除「{props.activeProfile.displayName ?? props.activeProfile.baseUrl}」？此操作不可撤销。</div>
+              <div className="notice-error w-full px-3 py-2">确认删除「{props.activeProfile.displayName ?? props.activeProfile.baseUrl}」？此操作不可撤销。</div>
               <div className="settings-actions">
                 <button className="button small" type="button" onClick={() => setConfirmDelete(false)}>取消</button>
                 <button className="button small danger" type="button" onClick={() => void props.onDelete(removeHistory)}>确认删除</button>
@@ -3177,7 +3177,7 @@ function UpdateSettingsSection({ update }: { update: AppUpdateController }) {
           <div className="field-label">当前版本</div>
           <div className="update-settings-version">v{update.currentVersion}</div>
         </div>
-        <div className={`status-line ${update.error ? "error" : update.available ? "warning" : "success"}`}>
+        <div className={update.error ? "status-line error notice-error px-3 py-2" : `status-line ${update.available ? "warning" : "success"}`}>
           {status}
         </div>
       </div>

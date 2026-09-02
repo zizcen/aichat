@@ -24,7 +24,7 @@ export function UpdatePrompt({ update }: { update: AppUpdateController }) {
         {info.releaseNotes ? (
           <p className="update-prompt-notes">{trimNotes(info.releaseNotes)}</p>
         ) : null}
-        {message ? <div className="update-prompt-message">{message}</div> : null}
+        {message ? <div className={`update-prompt-message${update.error ? " notice-error px-3 py-2" : ""}`}>{message}</div> : null}
         <div className="update-prompt-actions">
           <button className="button ghost small" type="button" onClick={update.dismiss} disabled={busy}>
             <X size={13} />
