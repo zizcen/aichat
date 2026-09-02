@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
 
 import { App } from "@/app/App";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
       <TooltipProvider>
         <App />
       </TooltipProvider>
+      <Toaster position="bottom-right" closeButton={false} theme="dark" />
     </QueryClientProvider>
   </StrictMode>,
 );

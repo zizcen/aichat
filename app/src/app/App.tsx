@@ -1,10 +1,13 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
+import { toast } from "sonner";
 import {
   Activity,
   AudioLines,
   Check,
   ChevronRight,
+  CircleAlert,
+  CircleCheck,
   CircleHelp,
   Clock3,
   Copy,
@@ -17,8 +20,8 @@ import {
   Globe2,
   History as HistoryIcon,
   ImageIcon,
+  Info,
   KeyRound,
-  Layers3,
   LoaderCircle,
   Menu,
   MessageSquareText,
@@ -45,6 +48,7 @@ import {
   useState,
   type Dispatch,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type SetStateAction,
@@ -70,6 +74,7 @@ import { UpdatePrompt } from "@/shared/update/update-prompt";
 import { useAppUpdate, type AppUpdateController } from "@/shared/update/use-app-update";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import apkLogoUrl from "@/assets/apk-logo.png";
 import { PageHeader } from "@/shared/components/page-header";
 import { SegmentedTabs } from "@/features/creative-console/workspace-mode-tabs";
 import { CreativeConsolePage } from "@/features/creative-console/creative-console-page";
@@ -91,11 +96,7 @@ import {
 
 type Workspace = "chat" | "image" | "video" | "voice" | "history" | "settings";
 
-type ToastState = {
-  message: string;
-  tone: "normal" | "error" | "success";
-} | null;
-type ToastTone = NonNullable<ToastState>["tone"];
+type ToastTone = "normal" | "error" | "success";
 
 type VideoJob = {
   id: string;
@@ -235,8 +236,8 @@ export function App() {
   const [workspace, setWorkspace] = useState<Workspace>("chat");
   const [booting, setBooting] = useState(Boolean(activeProfile));
   const [connecting, setConnecting] = useState(false);
+  const [connectionTransitioning, setConnectionTransitioning] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  const [toast, setToast] = useState<ToastState>(null);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [sessionsReady, setSessionsReady] = useState(false);
@@ -245,13 +246,9 @@ export function App() {
 
   const showToast = useCallback(
     (message: string, tone: ToastTone = "normal") => {
-      setToast({ message, tone });
-      window.setTimeout(
-        () =>
-          setToast((current) =>
-            current?.message === message ? null : current,
-          ),
-        5000,
+      toast.custom(
+        (id) => <AppToast id={id} message={message} tone={tone} />,
+        { duration: 5000, unstyled: true },
       );
     },
     [],
@@ -432,6 +429,8 @@ export function App() {
           baseUrl: normalized,
           allowHttp: __DEV_BUILD__,
         });
+        setConnectionTransitioning(true);
+        await waitForMs(420);
         setProfiles(readProfiles().profiles);
         setActiveProfileId(profile.id);
         setApiKey(normalizedKey);
@@ -445,9 +444,11 @@ export function App() {
           modelResponse.data.length ? "success" : "normal",
         );
       } catch (error) {
+        setConnectionTransitioning(false);
         throw new Error(formatError(error));
       } finally {
         setConnecting(false);
+        setConnectionTransitioning(false);
       }
     },
     [showToast],
@@ -518,20 +519,11 @@ export function App() {
     [activeProfile, showToast],
   );
 
-  const toastView = toast ? (
-    <div
-      className={`toast ${toast.tone === "error" ? "error-text" : toast.tone === "success" ? "success-text" : ""}`}
-      role="status"
-    >
-      {toast.message}
-    </div>
-  ) : null;
   const updateView = <UpdatePrompt update={update} />;
   if (booting)
     return (
       <>
         <LoadingScreen />
-        {toastView}
         {updateView}
       </>
     );
@@ -544,8 +536,8 @@ export function App() {
           onConnect={connect}
           onSelectProfile={switchProfile}
           onPreview={enterPreview}
+          transitioning={connectionTransitioning}
         />
-        {toastView}
         {updateView}
       </>
     );
@@ -733,7 +725,6 @@ export function App() {
           </div>
         </main>
       </div>
-      {toastView}
       {updateView}
     </div>
   );
@@ -750,6 +741,29 @@ function LoadingScreen() {
   );
 }
 
+function AppToast({
+  id,
+  message,
+  tone,
+}: {
+  id: string | number;
+  message: string;
+  tone: ToastTone;
+}) {
+  const Icon = tone === "error" ? CircleAlert : tone === "success" ? CircleCheck : Info;
+  return (
+    <button
+      className={`app-toast app-toast-${tone}`}
+      type="button"
+      onClick={() => toast.dismiss(id)}
+      aria-label="关闭提示"
+    >
+      <span className="app-toast-icon" aria-hidden="true"><Icon size={15} /></span>
+      <span className="app-toast-message">{message}</span>
+    </button>
+  );
+}
+
 function ConnectionScreen(props: {
   profiles: ConnectionProfile[];
   connecting: boolean;
@@ -760,12 +774,38 @@ function ConnectionScreen(props: {
   }) => Promise<void>;
   onSelectProfile: (profile: ConnectionProfile) => Promise<void>;
   onPreview: () => void;
+  transitioning?: boolean;
 }) {
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [showKey, setShowKey] = useState(false);
+  const [introStage, setIntroStage] = useState<"intro" | "entering" | "ready">("intro");
+  const [leavingForPreview, setLeavingForPreview] = useState(false);
+  const introTimerRef = useRef<number | null>(null);
+  const previewTimerRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (introTimerRef.current !== null) window.clearTimeout(introTimerRef.current);
+    if (previewTimerRef.current !== null) window.clearTimeout(previewTimerRef.current);
+  }, []);
+  const beginIntro = () => {
+    if (introStage !== "intro") return;
+    setIntroStage("entering");
+    introTimerRef.current = window.setTimeout(() => setIntroStage("ready"), 700);
+  };
+  const handleIntroClick = () => beginIntro();
+  const handleIntroKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if ((event.key === "Enter" || event.key === " ") && introStage === "intro") {
+      event.preventDefault();
+      beginIntro();
+    }
+  };
+  const startPreview = () => {
+    if (leavingForPreview) return;
+    setLeavingForPreview(true);
+    previewTimerRef.current = window.setTimeout(props.onPreview, 420);
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
@@ -784,9 +824,19 @@ function ConnectionScreen(props: {
     }
   };
   return (
-    <div className="min-h-screen bg-background">
-      <header className="mx-auto flex h-16 w-full max-w-[960px] items-center justify-between px-5 sm:px-8 lg:px-0">
-        <span className="text-sm font-semibold text-foreground">创作工作台</span>
+    <div
+      className={`connection-shell connection-shell-${introStage}${leavingForPreview || props.transitioning ? " connection-shell-leaving" : ""} min-h-screen bg-background`}
+      onClick={handleIntroClick}
+      onKeyDown={handleIntroKeyDown}
+      tabIndex={introStage === "intro" ? 0 : -1}
+    >
+      <div className="connection-brand-animation" aria-hidden="true">
+        <div className="connection-brand-logo"><img src={apkLogoUrl} alt="" /></div>
+        <span className="connection-brand-name connection-brand-name-vertical">创作工作台</span>
+        <span className="connection-brand-name connection-brand-name-horizontal">创作工作台</span>
+      </div>
+      <div className="connection-brand-divider" aria-hidden="true" />
+      <header className="connection-header mx-auto flex h-16 w-full max-w-[960px] items-center justify-end px-5 sm:px-8 lg:px-0">
         <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" asChild>
           <a href="https://github.com/zizcen/aichat" target="_blank" rel="noreferrer" aria-label="GitHub">
             <Github />
@@ -794,12 +844,9 @@ function ConnectionScreen(props: {
         </Button>
       </header>
 
-      <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[960px] items-center justify-center px-5 py-12 sm:px-8 lg:px-0">
+      <main className="connection-main mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[960px] items-center justify-center px-5 py-12 sm:px-8 lg:px-0">
         <div className="grid w-full max-w-[840px] items-center lg:grid-cols-[minmax(0,1fr)_1px_380px] lg:gap-14">
           <section className="hidden min-h-72 flex-col justify-center lg:flex">
-            <div className="mb-7 grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground">
-              <Layers3 size={21} />
-            </div>
             <p className="text-xs font-medium text-muted-foreground">私人创作空间</p>
             <h1 className="mt-3 max-w-sm text-3xl font-medium leading-tight tracking-tight">把你的 AI 提供商，变成随身创作台。</h1>
             <p className="mt-4 max-w-xs text-xs leading-6 text-muted-foreground">连接已经部署的服务，聊天、生成图片与视频，结果默认留在本机。</p>
@@ -833,9 +880,9 @@ function ConnectionScreen(props: {
                 <span className="text-xs font-medium text-muted-foreground">名称（可选）</span>
                 <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={40} className="h-9 bg-card" />
               </label>
-              {error ? <div className="flex items-start gap-2 text-xs text-destructive"><X size={14} className="mt-0.5 shrink-0" />{error}</div> : null}
+              {error ? <div className="notice-error flex items-start gap-2 px-3 py-2 text-xs"><CircleAlert size={14} className="mt-0.5 shrink-0" />{error}</div> : null}
               <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
-                {__DEV_BUILD__ ? <Button variant="ghost" type="button" onClick={props.onPreview}><Sparkles />预览界面</Button> : null}
+                {__DEV_BUILD__ ? <Button variant="ghost" type="button" onClick={startPreview} disabled={leavingForPreview}><Sparkles />预览界面</Button> : null}
                 <Button type="submit" size="sm" disabled={props.connecting}>{props.connecting ? <LoaderCircle className="animate-spin" /> : <ChevronRight />}{props.connecting ? "检查中…" : "测试并添加"}</Button>
               </div>
             </form>
@@ -2375,7 +2422,7 @@ function VideoJobRow(props: {
         <span>{props.job.requestId.slice(0, 12)}…</span>
       </div>
       {props.job.error ? (
-        <div className="error-text" style={{ marginTop: 8, fontSize: 11 }}>
+        <div className="notice-error px-3 py-2" style={{ marginTop: 8, fontSize: 11 }}>
           {props.job.error}
         </div>
       ) : null}
@@ -3226,4 +3273,8 @@ function formatError(error: unknown): string {
     return error.message || `请求失败（${error.status}）。`;
   }
   return error instanceof Error ? error.message : "请求失败，请稍后重试。";
+}
+
+function waitForMs(duration: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, duration));
 }

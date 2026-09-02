@@ -176,7 +176,7 @@ export function CreativeConsolePage(props: CreativeConsolePageProps) {
   }
 
   return (
-    <div className="creative-console-page flex h-full min-h-0 flex-col gap-5 overflow-hidden">
+    <div className="creative-console-page workspace-reveal flex h-full min-h-0 flex-col gap-5 overflow-hidden">
       <div className="creative-page-heading flex items-start gap-2">
         {props.onOpenMenu ? (
           <Button type="button" variant="ghost" size="icon" className="mt-0.5 size-9 shrink-0 text-muted-foreground" onClick={props.onOpenMenu} aria-label="打开设置">
@@ -797,7 +797,7 @@ function ChatPanel({ apiKey, model, modelOptions, onModelChange, storageScope, t
             )}
           </div>
         </div>
-        {mutation.isError ? <div className="mt-1 px-2 text-[11px] text-destructive">{mutation.error.message}</div> : null}
+        {mutation.isError ? <div className="notice-error mt-1 px-3 py-2 text-[11px]">{mutation.error.message}</div> : null}
       </form>
 
       <AlertDialog open={pendingTruncate !== null} onOpenChange={(open) => { if (!open) setPendingTruncate(null); }}>
@@ -978,7 +978,7 @@ function ImagePanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
                     <Button type="button" variant="secondary" size="sm" className="w-full" onClick={() => fileInputRef.current?.click()}>
                       <Upload />{t("creativeConsole.uploadImage")}
                     </Button>
-                    {uploadError ? <p className="mt-1 text-[11px] text-destructive">{uploadError}</p> : null}
+                    {uploadError ? <p className="notice-error mt-1 px-2 py-1 text-[11px]">{uploadError}</p> : null}
                   </PopoverContent>
                 </Popover>
               ) : null}
@@ -992,8 +992,8 @@ function ImagePanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
             </div>
           </div>
         </div>
-        {uploadError ? <div className="mt-1 px-2 text-[11px] text-destructive">{uploadError}</div> : null}
-        {mutation.isError ? <div className="mt-1 px-2 text-[11px] text-destructive">{mutation.error.message}</div> : null}
+        {uploadError ? <div className="notice-error mt-1 px-3 py-2 text-[11px]">{uploadError}</div> : null}
+        {mutation.isError ? <div className="notice-error mt-1 px-3 py-2 text-[11px]">{mutation.error.message}</div> : null}
       </form>
     </div>
   );
@@ -1264,7 +1264,7 @@ function VideoPanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
                       {uploadMutation.isPending ? <Loader2 className="animate-spin" /> : <Upload />}
                       {t("creativeConsole.uploadImage")}
                     </Button>
-                    {uploadMutation.isError ? <p className="mt-1 text-[11px] text-destructive">{uploadMutation.error.message}</p> : null}
+                    {uploadMutation.isError ? <p className="notice-error mt-1 px-2 py-1 text-[11px]">{uploadMutation.error.message}</p> : null}
                   </PopoverContent>
                 </Popover>
                 <Popover>
@@ -1304,7 +1304,7 @@ function VideoPanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
                       {uploadMutation.isPending ? <Loader2 className="animate-spin" /> : <Upload />}
                       {t("creativeConsole.uploadImage")}
                     </Button>
-                    {uploadMutation.isError ? <p className="mt-1 text-[11px] text-destructive">{uploadMutation.error.message}</p> : null}
+                    {uploadMutation.isError ? <p className="notice-error mt-1 px-2 py-1 text-[11px]">{uploadMutation.error.message}</p> : null}
                   </PopoverContent>
                 </Popover>
                 <Select value={referenceVoiceId || "__none__"} onValueChange={(value) => { setReferenceVoiceId(value === "__none__" ? "" : value); if (value !== "__none__") { imageSelectionVersionRef.current += 1; setImageURL(""); setImageFileID(""); } }} disabled={hasFirstFrame}>
@@ -1355,7 +1355,7 @@ function VideoPanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
                       {videoUploadMutation.isPending ? <Loader2 className="animate-spin" /> : <Upload />}
                       {t("creativeConsole.uploadVideo")}
                     </Button>
-                    {videoUploadMutation.isError ? <p className="mt-1 text-[11px] text-destructive">{videoUploadMutation.error.message}</p> : null}
+                    {videoUploadMutation.isError ? <p className="notice-error mt-1 px-2 py-1 text-[11px]">{videoUploadMutation.error.message}</p> : null}
                   </PopoverContent>
                 </Popover>
               )}
@@ -1375,7 +1375,7 @@ function VideoPanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
             </Button>
           </div>
         </div>
-        {createMutation.isError ? <div className="mt-1 px-2 text-[11px] text-destructive">{createMutation.error.message}</div> : null}
+        {createMutation.isError ? <div className="notice-error mt-1 px-3 py-2 text-[11px]">{createMutation.error.message}</div> : null}
       </form>
     </div>
   );
@@ -1512,8 +1512,8 @@ function VoicePanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
             </div>
           </div>
         ) : null}
-        {ttsMutation.isError ? <div className="px-2 text-[11px] text-destructive">{ttsMutation.error.message}</div> : null}
-        {sttMutation.isError ? <div className="px-2 text-[11px] text-destructive">{sttMutation.error.message}</div> : null}
+        {ttsMutation.isError ? <div className="notice-error px-3 py-2 text-[11px]">{ttsMutation.error.message}</div> : null}
+        {sttMutation.isError ? <div className="notice-error px-3 py-2 text-[11px]">{sttMutation.error.message}</div> : null}
       </div>
       <form onSubmit={submit} className={composerClassName}>
         <div className="flex items-center gap-2 px-3 pt-3">
@@ -1901,15 +1901,15 @@ function LoadingResult({ text }: { text: string }) {
 }
 
 function InlineError({ message }: { message: string }) {
-  return <div role="alert" className="rounded-md bg-destructive/8 px-3 py-2 text-xs leading-5 text-destructive">{message}</div>;
+  return <div role="alert" className="notice-error px-3 py-2 text-xs leading-5">{message}</div>;
 }
 
 function RetryableError({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { t } = useTranslation();
   return (
-    <div role="alert" className="flex flex-col gap-2 rounded-md bg-destructive/8 px-3 py-2 text-xs leading-5 text-destructive sm:flex-row sm:items-center sm:justify-between">
+    <div role="alert" className="notice-error flex flex-col gap-2 px-3 py-2 text-xs leading-5 sm:flex-row sm:items-center sm:justify-between">
       <span>{message}</span>
-      <Button type="button" variant="ghost" size="sm" className="self-start text-destructive hover:text-destructive sm:self-auto" onClick={onRetry}>
+        <Button type="button" variant="ghost" size="sm" className="self-start text-destructive hover:text-destructive sm:self-auto" onClick={onRetry}>
         <RefreshCw />{t("common.retry")}
       </Button>
     </div>
