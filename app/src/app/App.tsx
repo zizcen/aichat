@@ -45,6 +45,7 @@ import {
   type Dispatch,
   type FormEvent,
   type MouseEvent as ReactMouseEvent,
+  type ReactNode,
   type SetStateAction,
 } from "react";
 
@@ -66,6 +67,8 @@ import { normalizeBaseUrl } from "@/shared/api/url";
 import { saveMedia, shareMedia } from "@/shared/platform/media";
 import { UpdatePrompt } from "@/shared/update/update-prompt";
 import { useAppUpdate, type AppUpdateController } from "@/shared/update/use-app-update";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/shared/components/page-header";
 import { CreativeConsolePage } from "@/features/creative-console/creative-console-page";
 import {
   activateProfile,
@@ -643,18 +646,20 @@ export function App() {
               />
             ) : (
               <>
-            <div className="workspace-page-heading flex items-start gap-2">
-              <button
-                className="icon-button workspace-menu-button"
+            <div className="creative-page-heading flex items-start gap-2">
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
+                className="mt-0.5 size-9 shrink-0 text-muted-foreground"
                 title={workspace === "settings" ? "返回创作" : "打开设置"}
                 onClick={() => setWorkspace((current) => current === "settings" ? "chat" : "settings")}
+                aria-label={workspace === "settings" ? "返回创作" : "打开设置"}
               >
-                <Menu size={18} />
-              </button>
+                <Menu />
+              </Button>
               <div className="min-w-0 flex-1">
-                <h1 className="page-title">{page.label}</h1>
-                <p className="page-description">{page.description}</p>
+                <PageHeader title={page.label} description={page.description} />
               </div>
             </div>
             <nav className="mode-tabs" aria-label="创作模式">
@@ -670,7 +675,7 @@ export function App() {
                 </button>
               ))}
             </nav>
-            {workspace !== "chat" ? (
+            {workspace === "image" || workspace === "video" || workspace === "voice" ? (
               <div className="provider-strip">
                 <div>
                   <div className="provider-strip-title">提供商</div>
@@ -3096,170 +3101,122 @@ function SettingsWorkspace(props: {
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [removeHistory, setRemoveHistory] = useState(true);
+  const [section, setSection] = useState<"provider" | "updates" | "service" | "data">("provider");
+  const sections = [
+    { id: "provider" as const, label: "提供商", icon: KeyRound },
+    { id: "updates" as const, label: "应用更新", icon: RefreshCw },
+    { id: "service" as const, label: "当前服务", icon: Activity },
+    { id: "data" as const, label: "数据与安全", icon: ShieldCheck },
+  ];
   return (
-    <div className="settings-grid">
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2 className="panel-title">提供商配置</h2>
-            <p className="panel-subtitle">
-              Key 只用于当前提供商请求；切换提供商会隔离模型、会话和任务。
-            </p>
-          </div>
-          <KeyRound size={17} className="muted" />
-        </div>
-        <div className="panel-body">
-          <div className="profile-list">
-            {props.profiles.map((profile) => (
-              <div
-                className={`profile-row${profile.id === props.activeProfile.id ? "" : ""}`}
-                key={profile.id}
-              >
-                <div className="profile-info">
-                  <div className="profile-name">
-                    {profile.displayName ?? "未命名提供商"}{" "}
-                    {profile.id === props.activeProfile.id ? (
-                      <span
-                        className="success-text"
-                        style={{ fontSize: 10, marginLeft: 6 }}
-                      >
-                        当前
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="profile-url">{profile.baseUrl}</div>
-                </div>
-                <div className="profile-actions">
-                  {profile.id !== props.activeProfile.id ? (
-                    <button
-                      className="button small"
-                      type="button"
-                      onClick={() => void props.onSwitch(profile)}
-                    >
-                      切换
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="form-footer" style={{ marginTop: 14 }}>
-            <button className="button" type="button" onClick={props.onAdd}>
-              <Plus size={14} />
-              添加提供商
-            </button>
-          </div>
-        </div>
-      </section>
-      <UpdateSettingsPanel update={props.update} />
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2 className="panel-title">当前服务</h2>
-            <p className="panel-subtitle">模型目录来自公共 GET /v1/models。</p>
-          </div>
-          <Activity size={17} className="muted" />
-        </div>
-        <div className="panel-body">
-          <div className="status-line success">
-            <span className="connection-dot" />
-            已就绪 · {props.models.length} 个模型
-          </div>
-          <div
-            style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 13 }}
+    <div className="settings-console">
+      <nav className="settings-section-nav" aria-label="设置分组">
+        {sections.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            className={`settings-section-tab${section === id ? " active" : ""}`}
+            type="button"
+            role="tab"
+            aria-selected={section === id}
+            onClick={() => setSection(id)}
           >
-            {props.models.slice(0, 24).map((model) => (
-              <span
-                key={model.id}
-                style={{
-                  padding: "5px 8px",
-                  border: "1px solid var(--line)",
-                  borderRadius: 6,
-                  color: "var(--muted)",
-                  fontSize: 10,
-                }}
-              >
-                {model.id}
-              </span>
-            ))}
-          </div>
-          {props.models.length === 0 ? (
-            <div className="field-hint" style={{ marginTop: 12 }}>
-              当前 Key 没有模型白名单，仍可在各工作区手动输入模型 ID。
-            </div>
-          ) : null}
-        </div>
-      </section>
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2 className="panel-title">数据与安全</h2>
-            <p className="panel-subtitle">
-            清除提供商时可同时删除该提供商的会话和视频任务。
-            </p>
-          </div>
-          <ShieldCheck size={17} className="muted" />
-        </div>
-        <div className="panel-body">
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={removeHistory}
-              onChange={(event) => setRemoveHistory(event.target.checked)}
-            />
-            删除提供商时同时删除本地历史与媒体索引
-          </label>
-          {confirmDelete ? (
-            <div
-              style={{
-                marginTop: 14,
-                padding: 12,
-                border: "1px solid rgba(255,141,141,.3)",
-                borderRadius: 8,
-                background: "rgba(255,141,141,.05)",
-              }}
-            >
-              <div className="error-text" style={{ fontSize: 12 }}>
-                确认删除「
-                {props.activeProfile.displayName ?? props.activeProfile.baseUrl}
-                」？此操作不可撤销。
-              </div>
-              <div className="form-footer">
-                <button
-                  className="button small"
-                  type="button"
-                  onClick={() => setConfirmDelete(false)}
-                >
-                  取消
-                </button>
-                <button
-                  className="button small danger"
-                  type="button"
-                  onClick={() => void props.onDelete(removeHistory)}
-                >
-                  确认删除
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="form-footer" style={{ marginTop: 14 }}>
-              <button
-                className="button danger"
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 size={14} />
-                删除当前提供商
+            <Icon size={15} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <div className="settings-section-content">
+        {section === "provider" ? (
+          <SettingsSectionFrame title="提供商" description="Key 只用于当前提供商请求；切换提供商会隔离模型、会话和任务。" icon={<KeyRound size={17} />}>
+            <div className="settings-option-list">
+              {props.profiles.map((profile) => (
+                <div className="settings-option-row" key={profile.id}>
+                  <div className="profile-info">
+                    <div className="profile-name">
+                      {profile.displayName ?? "未命名提供商"}
+                      {profile.id === props.activeProfile.id ? <span className="settings-current-mark">当前</span> : null}
+                    </div>
+                    <div className="profile-url">{profile.baseUrl}</div>
+                  </div>
+                  {profile.id !== props.activeProfile.id ? (
+                    <button className="button small" type="button" onClick={() => void props.onSwitch(profile)}>切换</button>
+                  ) : <span className="settings-ready-mark"><span className="connection-dot" />已连接</span>}
+                </div>
+              ))}
+              <button className="settings-add-row" type="button" onClick={props.onAdd}>
+                <Plus size={15} />
+                <span>添加提供商</span>
               </button>
             </div>
-          )}
-        </div>
-      </section>
+          </SettingsSectionFrame>
+        ) : null}
+
+        {section === "updates" ? <UpdateSettingsSection update={props.update} /> : null}
+
+        {section === "service" ? (
+          <SettingsSectionFrame title="当前服务" description="模型目录来自公共 GET /v1/models。" icon={<Activity size={17} />}>
+            <div className="settings-service-summary">
+              <div className="settings-ready-mark"><span className="connection-dot" />已就绪</div>
+              <span className="settings-service-count">{props.models.length} 个模型</span>
+            </div>
+            {props.models.length ? (
+              <div className="settings-model-list">
+                {props.models.slice(0, 24).map((model) => <span className="settings-model-chip" key={model.id}>{model.id}</span>)}
+              </div>
+            ) : <p className="settings-help-text">当前 Key 没有模型白名单，仍可在各工作区手动输入模型 ID。</p>}
+          </SettingsSectionFrame>
+        ) : null}
+
+        {section === "data" ? (
+          <SettingsSectionFrame title="数据与安全" description="清除提供商时可同时删除该提供商的会话和视频任务。" icon={<ShieldCheck size={17} />}>
+            <div className="settings-data-row">
+              <div>
+                <div className="settings-row-title">删除本地数据</div>
+                <p className="settings-row-description">删除提供商时同时删除本地历史与媒体索引。</p>
+              </div>
+              <input className="settings-checkbox" type="checkbox" checked={removeHistory} onChange={(event) => setRemoveHistory(event.target.checked)} />
+            </div>
+            {confirmDelete ? (
+              <div className="settings-confirm-row">
+                <div className="error-text">确认删除「{props.activeProfile.displayName ?? props.activeProfile.baseUrl}」？此操作不可撤销。</div>
+                <div className="settings-actions">
+                  <button className="button small" type="button" onClick={() => setConfirmDelete(false)}>取消</button>
+                  <button className="button small danger" type="button" onClick={() => void props.onDelete(removeHistory)}>确认删除</button>
+                </div>
+              </div>
+            ) : (
+              <div className="settings-danger-row">
+                <div>
+                  <div className="settings-row-title">移除当前提供商</div>
+                  <p className="settings-row-description">断开连接并清理该提供商的本地配置。</p>
+                </div>
+                <button className="button danger small" type="button" onClick={() => setConfirmDelete(true)}><Trash2 size={14} />删除</button>
+              </div>
+            )}
+          </SettingsSectionFrame>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function UpdateSettingsPanel({ update }: { update: AppUpdateController }) {
+function SettingsSectionFrame(props: { title: string; description: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <section className="settings-section-frame">
+      <header className="settings-section-heading">
+        <div>
+          <h2 className="settings-section-title">{props.title}</h2>
+          <p className="settings-section-description">{props.description}</p>
+        </div>
+        <span className="settings-section-icon">{props.icon}</span>
+      </header>
+      <div className="settings-section-body">{props.children}</div>
+    </section>
+  );
+}
+
+function UpdateSettingsSection({ update }: { update: AppUpdateController }) {
   const hasRelease = Boolean(update.info);
   const status = update.checking
     ? "正在检查…"
@@ -3271,47 +3228,28 @@ function UpdateSettingsPanel({ update }: { update: AppUpdateController }) {
           ? `发现新版本 ${update.info?.latestVersion}`
           : `已是最新（${update.currentVersion}）`;
   return (
-    <section className="panel update-settings-panel">
-      <div className="panel-header">
+    <SettingsSectionFrame title="应用更新" description="从 GitHub Release 检查创作工作台的正式版本。" icon={<RefreshCw size={17} />}>
+      <div className="settings-update-summary">
         <div>
-          <h2 className="panel-title">应用更新</h2>
-          <p className="panel-subtitle">从 GitHub Release 检查创作工作台的正式版本。</p>
+          <div className="field-label">当前版本</div>
+          <div className="update-settings-version">v{update.currentVersion}</div>
         </div>
-        <RefreshCw size={17} className={update.checking ? "spinner muted" : "muted"} />
-      </div>
-      <div className="panel-body">
-        <div className="update-settings-row">
-          <div>
-            <div className="field-label">当前版本</div>
-            <div className="update-settings-version">v{update.currentVersion}</div>
-          </div>
-          <div className={`status-line ${update.error ? "error" : update.available ? "warning" : "success"}`}>
-            {status}
-          </div>
-        </div>
-        {update.installState === "permission_required" ? (
-          <div className="field-hint update-settings-hint">请在系统设置中允许安装未知来源应用，然后再次点击更新。</div>
-        ) : null}
-        <div className="form-footer update-settings-actions">
-          <button className="button small" type="button" onClick={() => void update.checkNow()} disabled={update.checking}>
-            <RefreshCw size={13} />
-            检查更新
-          </button>
-          {update.info ? (
-            <button className="button ghost small" type="button" onClick={update.openRelease}>
-              <ExternalLink size={13} />
-              打开 Release
-            </button>
-          ) : null}
-          {update.available ? (
-            <button className="button primary small" type="button" onClick={() => void update.install()} disabled={update.installState === "downloading" || update.installState === "installing"}>
-              <Download size={13} />
-              {update.installState === "permission_required" ? "重新安装" : "立即更新"}
-            </button>
-          ) : null}
+        <div className={`status-line ${update.error ? "error" : update.available ? "warning" : "success"}`}>
+          {status}
         </div>
       </div>
-    </section>
+      {update.installState === "permission_required" ? (
+        <div className="settings-help-text update-settings-hint">请在系统设置中允许安装未知来源应用，然后再次点击更新。</div>
+      ) : null}
+      <div className="settings-actions update-settings-actions">
+        <button className="button small" type="button" onClick={() => void update.checkNow()} disabled={update.checking}>
+          <RefreshCw size={13} />
+          检查更新
+        </button>
+        {update.info ? <button className="button ghost small" type="button" onClick={update.openRelease}><ExternalLink size={13} />打开 Release</button> : null}
+        {update.available ? <button className="button primary small" type="button" onClick={() => void update.install()} disabled={update.installState === "downloading" || update.installState === "installing"}><Download size={13} />{update.installState === "permission_required" ? "重新安装" : "立即更新"}</button> : null}
+      </div>
+    </SettingsSectionFrame>
   );
 }
 

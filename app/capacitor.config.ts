@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: "创作工作台",
   webDir: "dist",
   server: { androidScheme: "https" },
-  android: { allowMixedContent: false, adjustMarginsForEdgeToEdge: "auto" },
+  // Insets are applied by MainActivity so the WebView also resizes for the
+  // on-screen keyboard instead of consuming only system-bar margins.
+  android: { allowMixedContent: false, adjustMarginsForEdgeToEdge: "disable" },
 };
 
 export default config;
