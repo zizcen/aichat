@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Capacitor } from "@capacitor/core";
 import { ArrowUp, AudioLines, BrainCircuit, Check, CheckCircle2, Clock3, ExternalLink, Globe, History, ImagePlus, ImageUpscale, Images, Loader2, Menu, Mic, Pencil, RefreshCw, Sparkle, Square, SquarePen, Trash2, TriangleAlert, TvMinimal, Upload, Video, Wrench, X } from "lucide-react";
 import { marked } from "marked";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
@@ -41,12 +42,14 @@ import {
 import { PageHeader } from "@/shared/components/page-header";
 import { WorkspaceModeTabs, type CreativeMode } from "./workspace-mode-tabs";
 import { advanceKeyboardInset, calculateKeyboardInset } from "./keyboard-inset";
+import { useAndroidImeAutoScroller } from "./android-ime";
 import { cn } from "@/shared/lib/cn";
 import type { Grok2ApiClient } from "@/shared/api/client";
 import type { Model } from "@/shared/api/types";
 import type { ConnectionProfile } from "@/shared/storage/profile-store";
 import { uploadMediaInput } from "@/features/media/media-api";
 import { modelsToRoutes, setCreativeConsoleRuntime } from "./creative-console-runtime";
+import { ModelProviderSelect } from "./model-provider-select";
 
 type ConversationMessage = ChatMessage & {
   id: string;
@@ -114,6 +117,7 @@ export type CreativeConsolePageProps = {
 export function CreativeConsolePage(props: CreativeConsolePageProps) {
   const { t } = useTranslation();
   useKeyboardInset();
+  useAndroidImeAutoScroller();
   const [mode, setMode] = useState<CreativeMode>(props.initialMode ?? "chat");
   const [selectedModels, setSelectedModels] = useState<Record<CreativeMode, string>>({ chat: "", image: "", video: "", voice: "" });
   const [chatToolbarElement, setChatToolbarElement] = useState<HTMLDivElement | null>(null);
@@ -759,7 +763,7 @@ function ChatPanel({ apiKey, model, modelOptions, onModelChange, storageScope, t
           <Textarea id="chat-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} onKeyDown={handlePromptKeyDown} placeholder={t("creativeConsole.chatPlaceholder")} className="min-h-24 resize-none border-0 bg-transparent px-4 py-3 text-sm focus-visible:ring-0" />
           <div className="flex items-center justify-between gap-3 px-3 pb-3">
             <div className="creative-horizontal-controls flex min-w-0 items-center gap-0.5 overflow-x-auto">
-              <CompactModelSelect value={model} models={modelOptions} onChange={onModelChange} />
+              <ModelProviderSelect value={model} models={modelOptions} onChange={onModelChange} />
               <CompactIconSelect
                 value={webSearch ? "on" : "off"}
                 options={[{ value: "off", label: t("creativeConsole.webSearchOff") }, { value: "on", label: t("creativeConsole.webSearchOn") }]}
@@ -957,7 +961,7 @@ function ImagePanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
           <Textarea id="image-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={placeholder} className="min-h-24 resize-none border-0 bg-transparent px-4 py-3 text-sm focus-visible:ring-0" />
           <div className="flex items-center justify-between gap-3 px-3 pb-3">
             <div className="creative-horizontal-controls flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-              <CompactModelSelect value={activeModel} models={activeModels} onChange={onModelChange} />
+              <ModelProviderSelect value={activeModel} models={activeModels} onChange={onModelChange} />
               {action === "edit" ? (
                 <Popover>
                   <PopoverTrigger asChild>
@@ -1223,7 +1227,7 @@ function VideoPanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
           <Textarea id="video-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={placeholder} className="min-h-24 resize-none border-0 bg-transparent px-4 py-3 text-sm focus-visible:ring-0" />
           <div className="flex items-center justify-between gap-3 px-3 pb-3">
             <div className="creative-horizontal-controls flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-              <CompactModelSelect value={activeModel} models={activeModels} onChange={onModelChange} />
+              <ModelProviderSelect value={activeModel} models={activeModels} onChange={onModelChange} />
               {action === "generate" ? (
                 <>
                 <Popover>
@@ -1531,7 +1535,7 @@ function VoicePanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
         )}
         <div className="flex items-center justify-between gap-2 px-3 pb-3">
           <div className="creative-horizontal-controls flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto">
-            <CompactModelSelect value={activeModel} models={filteredModels} onChange={onModelChange} />
+            <ModelProviderSelect value={activeModel} models={filteredModels} onChange={onModelChange} />
             <CompactSelect value={language} options={languageOptions} onChange={setLanguage} ariaLabel={t("creativeConsole.voiceLanguage")} />
             {subMode === "tts" ? (
               <CompactSelect value={speed} options={speedOptions} onChange={setSpeed} ariaLabel={t("creativeConsole.voiceSpeed")} suffix="x" icon={<Clock3 />} />
@@ -1568,6 +1572,10 @@ function WelcomeState({ title }: { title: string }) {
 
 function useKeyboardInset(): void {
   useEffect(() => {
+    // Android's WebView host now owns the same IME inset that RikkaHub applies
+    // with imePadding(). Keeping this fallback disabled there prevents a
+    // second height animation from shrinking the page twice.
+    if (Capacitor.getPlatform() === "android") return;
     const root = document.documentElement;
     const viewport = window.visualViewport;
     if (!viewport) return;
@@ -1719,24 +1727,6 @@ function ComposerActionButtons({ value, actions, onChange }: { value: string; ac
       ))}
     </div>
   );
-}
-
-function CompactModelSelect({ value, models, onChange }: { value: string; models: ModelRouteDTO[]; onChange: (model: string) => void }) {
-  const { t } = useTranslation();
-  return (
-    <Select value={value} onValueChange={onChange} disabled={models.length === 0}>
-      <SelectTrigger className="h-8 w-auto max-w-[145px] shrink-0 gap-1 whitespace-nowrap border-0 bg-transparent px-2 shadow-none hover:bg-secondary/70 focus:bg-secondary/70 focus:ring-0 sm:max-w-[220px]" aria-label={t("creativeConsole.model")} title={value}>
-        <span className="creative-model-label">{value ? compactModelName(value) : (models.length === 0 ? t("creativeConsole.noModels") : t("creativeConsole.selectModel"))}</span>
-      </SelectTrigger>
-      <SelectContent>{models.map((item) => <SelectItem key={item.id} value={item.publicId}>{item.publicId}</SelectItem>)}</SelectContent>
-    </Select>
-  );
-}
-
-function compactModelName(value: string): string {
-  const name = value.trim();
-  const maxLength = 17;
-  return name.length > maxLength ? `…${name.slice(-(maxLength - 1))}` : name;
 }
 
 function CompactSelect({ value, options, onChange, ariaLabel, suffix, icon }: { value: string; options: readonly string[]; onChange: (value: string) => void; ariaLabel: string; suffix?: string; icon?: ReactNode }) {
