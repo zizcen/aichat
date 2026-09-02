@@ -3065,7 +3065,7 @@ function SettingsWorkspace(props: {
     { id: "data" as const, label: "数据与安全", shortLabel: "数据", icon: ShieldCheck },
   ];
   return (
-    <div className="settings-console">
+    <div className="settings-console workspace-reveal">
       <div className="settings-section-nav">
         <SegmentedTabs
           value={section}

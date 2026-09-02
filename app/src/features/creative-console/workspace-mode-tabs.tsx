@@ -19,9 +19,9 @@ export function SegmentedTabs(props: {
 }) {
   return (
     <Tabs value={props.value} onValueChange={props.onChange}>
-      <TabsList aria-label={props.ariaLabel} className="h-9 w-full rounded-full bg-secondary/50 p-1">
+      <TabsList aria-label={props.ariaLabel} className="segmented-tabs-list h-9 w-full rounded-full bg-secondary/50 p-1">
         {props.items.map(({ value, label, icon: Icon }) => (
-          <TabsTrigger key={value} className="flex-1 gap-1.5 rounded-full px-3 [&_svg]:size-3.5" value={value}>
+          <TabsTrigger key={value} className="segmented-tab-trigger flex-1 gap-1.5 whitespace-nowrap rounded-full px-3 [&_svg]:size-3.5" value={value}>
             <Icon />
             {label}
           </TabsTrigger>
