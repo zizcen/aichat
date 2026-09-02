@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowUp, AudioLines, BrainCircuit, Check, CheckCircle2, Clock3, ExternalLink, Globe, History, ImageIcon, ImagePlus, ImageUpscale, Images, Loader2, Menu, MessageSquareText, Mic, Pencil, RefreshCw, Sparkle, Square, SquarePen, Trash2, TriangleAlert, TvMinimal, Upload, Video, Wrench, X } from "lucide-react";
+import { ArrowUp, AudioLines, BrainCircuit, Check, CheckCircle2, Clock3, ExternalLink, Globe, History, ImagePlus, ImageUpscale, Images, Loader2, Menu, Mic, Pencil, RefreshCw, Sparkle, Square, SquarePen, Trash2, TriangleAlert, TvMinimal, Upload, Video, Wrench, X } from "lucide-react";
 import { marked } from "marked";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -14,7 +14,6 @@ import { MessageScroller, MessageScrollerButton, MessageScrollerContent, Message
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ModelRouteDTO } from "@/entities/model/types";
@@ -40,6 +39,7 @@ import {
   type VoiceInfo,
 } from "@/features/creative-console/creative-console-api";
 import { PageHeader } from "@/shared/components/page-header";
+import { WorkspaceModeTabs, type CreativeMode } from "./workspace-mode-tabs";
 import { calculateKeyboardInset } from "./keyboard-inset";
 import { cn } from "@/shared/lib/cn";
 import type { Grok2ApiClient } from "@/shared/api/client";
@@ -48,7 +48,6 @@ import type { ConnectionProfile } from "@/shared/storage/profile-store";
 import { uploadMediaInput } from "@/features/media/media-api";
 import { modelsToRoutes, setCreativeConsoleRuntime } from "./creative-console-runtime";
 
-type CreativeMode = "chat" | "image" | "video" | "voice";
 type ConversationMessage = ChatMessage & {
   id: string;
   reasoning?: string;
@@ -191,14 +190,7 @@ export function CreativeConsolePage(props: CreativeConsolePageProps) {
 
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-9 shrink-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <Tabs value={mode} onValueChange={(value) => changeMode(value as CreativeMode)}>
-            <TabsList className="h-9 w-full rounded-full bg-secondary/50 p-1 lg:w-auto">
-              <TabsTrigger className="flex-1 gap-1.5 rounded-full px-3 lg:min-w-20 [&_svg]:size-3.5" value="chat"><MessageSquareText />{t("creativeConsole.modes.chat")}</TabsTrigger>
-              <TabsTrigger className="flex-1 gap-1.5 rounded-full px-3 lg:min-w-20 [&_svg]:size-3.5" value="image"><ImageIcon />{t("creativeConsole.modes.image")}</TabsTrigger>
-              <TabsTrigger className="flex-1 gap-1.5 rounded-full px-3 lg:min-w-20 [&_svg]:size-3.5" value="video"><Video />{t("creativeConsole.modes.video")}</TabsTrigger>
-              <TabsTrigger className="flex-1 gap-1.5 rounded-full px-3 lg:min-w-20 [&_svg]:size-3.5" value="voice"><AudioLines />{t("creativeConsole.modes.voice")}</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <WorkspaceModeTabs value={mode} onChange={changeMode} />
 
           <div className="flex min-w-0 items-center gap-2">
             <Select value={props.activeProfileId} onValueChange={(id) => void changeProvider(id)} disabled={switchingProvider || props.profiles.length < 2}>
@@ -1538,7 +1530,7 @@ function VoicePanel({ apiKey, model, modelOptions, onModelChange }: CreativePane
           </div>
         )}
         <div className="flex items-center justify-between gap-2 px-3 pb-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-1">
+          <div className="creative-horizontal-controls flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto">
             <CompactModelSelect value={activeModel} models={filteredModels} onChange={onModelChange} />
             <CompactSelect value={language} options={languageOptions} onChange={setLanguage} ariaLabel={t("creativeConsole.voiceLanguage")} />
             {subMode === "tts" ? (

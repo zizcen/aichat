@@ -182,7 +182,7 @@ const resources = {
       },
       creativeConsole: {
         title: "创作控制台",
-        description: "使用已创建的客户端密钥直接测试聊天、图片、视频和语音。",
+        description: "让灵感落地为聊天、图片、视频与语音。",
         promotion: "想要更完整的 AI 创作体验？试试我开发的另一个项目 {{product}}：开箱即用的轻量 Web Chat，支持多模型对话与图片生成，静态运行时仅约 34 MB。",
         promotionAction: "了解 DEEIX Chat",
         clientKey: "客户端密钥",

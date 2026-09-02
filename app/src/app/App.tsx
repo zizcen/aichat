@@ -9,6 +9,8 @@ import {
   Clock3,
   Copy,
   Download,
+  Eye,
+  EyeOff,
   ExternalLink,
   FileAudio,
   Github,
@@ -27,7 +29,6 @@ import {
   Plus,
   RefreshCw,
   Send,
-  Settings2,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -68,7 +69,9 @@ import { saveMedia, shareMedia } from "@/shared/platform/media";
 import { UpdatePrompt } from "@/shared/update/update-prompt";
 import { useAppUpdate, type AppUpdateController } from "@/shared/update/use-app-update";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/shared/components/page-header";
+import { SegmentedTabs } from "@/features/creative-console/workspace-mode-tabs";
 import { CreativeConsolePage } from "@/features/creative-console/creative-console-page";
 import {
   activateProfile,
@@ -182,20 +185,8 @@ const workspaceMeta: Record<Workspace, { label: string; description: string }> =
       description: "文字转语音与文件转写均直接连接当前提供商。",
     },
     history: { label: "历史", description: "按提供商隔离的本地会话和生成任务。" },
-    settings: {
-      label: "设置",
-      description: "管理提供商、数据删除和客户端行为。",
-    },
+    settings: { label: "设置", description: "管理连接与本地数据。" },
   };
-
-const navItems: Array<{ id: Workspace; icon: typeof MessageSquareText }> = [
-  { id: "chat", icon: MessageSquareText },
-  { id: "image", icon: ImageIcon },
-  { id: "video", icon: Video },
-  { id: "voice", icon: AudioLines },
-  { id: "history", icon: HistoryIcon },
-  { id: "settings", icon: Settings2 },
-];
 
 const markdownRenderer = new marked.Renderer();
 markdownRenderer.html = () => "";
@@ -662,19 +653,6 @@ export function App() {
                 <PageHeader title={page.label} description={page.description} />
               </div>
             </div>
-            <nav className="mode-tabs" aria-label="创作模式">
-              {navItems.slice(0, 4).map(({ id, icon: Icon }) => (
-                <button
-                  key={id}
-                  className={`mode-tab${workspace === id ? " active" : ""}`}
-                  type="button"
-                  onClick={() => setWorkspace(id)}
-                >
-                  <Icon size={16} />
-                  <span>{workspaceMeta[id].label}</span>
-                </button>
-              ))}
-            </nav>
             {workspace === "image" || workspace === "video" || workspace === "voice" ? (
               <div className="provider-strip">
                 <div>
@@ -806,147 +784,78 @@ function ConnectionScreen(props: {
     }
   };
   return (
-    <div className="connection-page">
-      <div className="connection-layout">
-        <section className="connection-intro">
-          <div className="intro-mark">
-            <Layers3 size={21} />
-          </div>
-          <div className="eyebrow">私人创作空间</div>
-          <h1 className="intro-title">把你的 AI 提供商，变成随身创作台。</h1>
-          <p className="intro-copy">
-            填写已经部署的服务地址和客户端
-            Key。所有推理请求直达你的提供商，会话和生成结果默认留在本机。
-          </p>
-          <div className="intro-points">
-            <div className="intro-point">
-              <ShieldCheck size={15} />
-              Key 通过本地安全存储引用，不进入会话标题或诊断信息。
+    <div className="min-h-screen bg-background">
+      <header className="mx-auto flex h-16 w-full max-w-[960px] items-center justify-between px-5 sm:px-8 lg:px-0">
+        <span className="text-sm font-semibold text-foreground">创作工作台</span>
+        <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" asChild>
+          <a href="https://github.com/zizcen/aichat" target="_blank" rel="noreferrer" aria-label="GitHub">
+            <Github />
+          </a>
+        </Button>
+      </header>
+
+      <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[960px] items-center justify-center px-5 py-12 sm:px-8 lg:px-0">
+        <div className="grid w-full max-w-[840px] items-center lg:grid-cols-[minmax(0,1fr)_1px_380px] lg:gap-14">
+          <section className="hidden min-h-72 flex-col justify-center lg:flex">
+            <div className="mb-7 grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground">
+              <Layers3 size={21} />
             </div>
-            <div className="intro-point">
-              <Zap size={15} />
-              支持 Responses 流式聊天、图片、异步视频和语音接口。
+            <p className="text-xs font-medium text-muted-foreground">私人创作空间</p>
+            <h1 className="mt-3 max-w-sm text-3xl font-medium leading-tight tracking-tight">把你的 AI 提供商，变成随身创作台。</h1>
+            <p className="mt-4 max-w-xs text-xs leading-6 text-muted-foreground">连接已经部署的服务，聊天、生成图片与视频，结果默认留在本机。</p>
+            <div className="mt-9 grid gap-3 text-xs leading-5 text-muted-foreground">
+              <div className="flex items-start gap-2"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-foreground" />Key 只保存在本地安全存储引用中。</div>
+              <div className="flex items-start gap-2"><Zap size={15} className="mt-0.5 shrink-0 text-foreground" />支持流式聊天、图片、视频和语音接口。</div>
+              <div className="flex items-start gap-2"><CircleHelp size={15} className="mt-0.5 shrink-0 text-foreground" />只连接公共 API，不调用管理端。</div>
             </div>
-            <div className="intro-point">
-              <CircleHelp size={15} />
-              只使用公共 `/v1` API，不依赖管理后台登录。
-            </div>
-          </div>
-        </section>
-        <section className="connection-form">
-          <div className="panel-title">添加提供商</div>
-          <p className="panel-subtitle">
-            添加前会依次检查存活、就绪状态和模型权限。
-          </p>
-          <form
-            className="form-stack"
-            onSubmit={(event) => void submit(event)}
-            style={{ marginTop: 22 }}
-          >
-            <label className="field">
-              <span className="field-label">BASE URL</span>
-              <input
-                className="input"
-                value={baseUrl}
-                onChange={(event) => setBaseUrl(event.target.value)}
-                autoComplete="url"
-                inputMode="url"
-              />
-              <span className="field-hint">
-                生产环境必须使用 HTTPS；末尾 `/` 和误填的 `/v1` 会自动规范化。
-              </span>
-            </label>
-            <label className="field">
-              <span className="field-label">CLIENT API KEY</span>
-              <div style={{ position: "relative" }}>
-                <input
-                  className="input"
-                  style={{ paddingRight: 70 }}
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  type={showKey ? "text" : "password"}
-                  autoComplete="off"
-                />
-                <button
-                  className="tiny-button"
-                  style={{ position: "absolute", right: 7, top: 9 }}
-                  type="button"
-                  onClick={() => setShowKey((value) => !value)}
-                >
-                  {showKey ? "隐藏" : "显示"}
-                </button>
+          </section>
+          <div className="hidden h-64 bg-border lg:block" aria-hidden="true" />
+
+          <section className="w-full max-w-[380px] justify-self-center lg:justify-self-auto">
+            <PageHeader title="连接提供商" description="添加前会检查服务状态和模型权限。" />
+            <form className="mt-6 space-y-4" onSubmit={(event) => void submit(event)}>
+              <label className="grid gap-2">
+                <span className="text-xs font-medium text-muted-foreground">服务地址</span>
+                <Input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} autoComplete="url" inputMode="url" className="h-9 bg-card" />
+                <span className="text-[11px] leading-5 text-muted-foreground">生产环境必须使用 HTTPS，末尾 `/` 和 `/v1` 会自动规范化。</span>
+              </label>
+              <label className="grid gap-2">
+                <span className="text-xs font-medium text-muted-foreground">客户端 Key</span>
+                <div className="relative">
+                  <Input value={apiKey} onChange={(event) => setApiKey(event.target.value)} type={showKey ? "text" : "password"} autoComplete="off" className="h-9 bg-card pr-16" />
+                  <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1 h-7 px-2 text-[11px]" onClick={() => setShowKey((value) => !value)} aria-label={showKey ? "隐藏 Key" : "显示 Key"}>
+                    {showKey ? <EyeOff /> : <Eye />}
+                    <span className="sr-only">{showKey ? "隐藏" : "显示"}</span>
+                  </Button>
+                </div>
+              </label>
+              <label className="grid gap-2">
+                <span className="text-xs font-medium text-muted-foreground">名称（可选）</span>
+                <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={40} className="h-9 bg-card" />
+              </label>
+              {error ? <div className="flex items-start gap-2 text-xs text-destructive"><X size={14} className="mt-0.5 shrink-0" />{error}</div> : null}
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+                {__DEV_BUILD__ ? <Button variant="ghost" type="button" onClick={props.onPreview}><Sparkles />预览界面</Button> : null}
+                <Button type="submit" size="sm" disabled={props.connecting}>{props.connecting ? <LoaderCircle className="animate-spin" /> : <ChevronRight />}{props.connecting ? "检查中…" : "测试并添加"}</Button>
               </div>
-            </label>
-            <label className="field">
-              <span className="field-label">提供商名称（可选）</span>
-              <input
-                className="input"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                maxLength={40}
-              />
-            </label>
-            {error ? (
-              <div className="status-line error">
-                <X size={14} />
-                {error}
+            </form>
+            {props.profiles.length > 0 ? (
+              <div className="mt-8 border-t border-border pt-5">
+                <div className="mb-2 text-xs font-medium text-muted-foreground">已有连接</div>
+                <div className="space-y-1.5">
+                  {props.profiles.slice(0, 3).map((profile) => (
+                    <button key={profile.id} className="flex min-h-12 w-full items-center gap-3 rounded-md bg-secondary/40 px-3 text-left text-xs transition-colors hover:bg-secondary/70" type="button" onClick={() => void props.onSelectProfile(profile)}>
+                      <span className="min-w-0 flex-1"><span className="block truncate font-medium text-foreground">{profile.displayName ?? "未命名连接"}</span><span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{profile.baseUrl}</span></span>
+                      <ChevronRight size={15} className="shrink-0 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
-            <div className="form-actions">
-              {__DEV_BUILD__ ? (
-                <button
-                  className="button ghost"
-                  type="button"
-                  onClick={props.onPreview}
-                >
-                  <Sparkles size={14} />
-                  预览界面
-                </button>
-              ) : null}
-              <button
-                className="button primary"
-                disabled={props.connecting}
-                type="submit"
-              >
-                {props.connecting ? (
-                  <LoaderCircle className="spinner" size={15} />
-                ) : (
-                  <ChevronRight size={15} />
-                )}
-                {props.connecting ? "检查中…" : "测试并添加"}
-              </button>
-            </div>
-          </form>
-          {props.profiles.length > 0 ? (
-            <div className="connection-note">
-              <div style={{ marginBottom: 9, color: "var(--muted)" }}>
-                已有提供商
-              </div>
-              {props.profiles.slice(0, 3).map((profile) => (
-                <button
-                  key={profile.id}
-                  className="profile-row"
-                  style={{ width: "100%", textAlign: "left", marginBottom: 7 }}
-                  type="button"
-                  onClick={() => void props.onSelectProfile(profile)}
-                >
-                  <span className="profile-info">
-                    <span className="profile-name">
-                      {profile.displayName ?? "未命名提供商"}
-                    </span>
-                    <span className="profile-url">{profile.baseUrl}</span>
-                  </span>
-                  <ChevronRight size={15} />
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <div className="connection-note">
-            支持 Android 8.0（API 26）及以上。当前仅支持公共 API，
-            不调用管理端接口，本地媒体上传暂不启用。
-          </div>
-        </section>
-      </div>
+            <p className="mt-6 border-t border-border pt-4 text-[11px] leading-5 text-muted-foreground">支持 Android 8.0（API 26）及以上。客户端不内置 Key，也不调用管理端接口。</p>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }
@@ -3103,32 +3012,25 @@ function SettingsWorkspace(props: {
   const [removeHistory, setRemoveHistory] = useState(true);
   const [section, setSection] = useState<"provider" | "updates" | "service" | "data">("provider");
   const sections = [
-    { id: "provider" as const, label: "提供商", icon: KeyRound },
-    { id: "updates" as const, label: "应用更新", icon: RefreshCw },
-    { id: "service" as const, label: "当前服务", icon: Activity },
-    { id: "data" as const, label: "数据与安全", icon: ShieldCheck },
+    { id: "provider" as const, label: "厂商", shortLabel: "厂商", icon: KeyRound },
+    { id: "updates" as const, label: "应用更新", shortLabel: "更新", icon: RefreshCw },
+    { id: "service" as const, label: "当前服务", shortLabel: "服务", icon: Activity },
+    { id: "data" as const, label: "数据与安全", shortLabel: "数据", icon: ShieldCheck },
   ];
   return (
     <div className="settings-console">
-      <nav className="settings-section-nav" aria-label="设置分组">
-        {sections.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            className={`settings-section-tab${section === id ? " active" : ""}`}
-            type="button"
-            role="tab"
-            aria-selected={section === id}
-            onClick={() => setSection(id)}
-          >
-            <Icon size={15} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
-
+      <div className="settings-section-nav">
+        <SegmentedTabs
+          value={section}
+          ariaLabel="设置分组"
+          items={sections.map(({ id, shortLabel, icon }) => ({ value: id, label: shortLabel, icon }))}
+          onChange={(value) => {
+            if (value === "provider" || value === "updates" || value === "service" || value === "data") setSection(value);
+          }}
+        />
+      </div>
       <div className="settings-section-content">
-        {section === "provider" ? (
-          <SettingsSectionFrame title="提供商" description="Key 只用于当前提供商请求；切换提供商会隔离模型、会话和任务。" icon={<KeyRound size={17} />}>
+        {section === "provider" ? <SettingsSectionFrame title="厂商" description="Key 仅用于当前请求；切换会隔离模型、会话和任务。" icon={<KeyRound size={17} />}>
             <div className="settings-option-list">
               {props.profiles.map((profile) => (
                 <div className="settings-option-row" key={profile.id}>
@@ -3146,56 +3048,50 @@ function SettingsWorkspace(props: {
               ))}
               <button className="settings-add-row" type="button" onClick={props.onAdd}>
                 <Plus size={15} />
-                <span>添加提供商</span>
+                <span>添加</span>
               </button>
             </div>
-          </SettingsSectionFrame>
-        ) : null}
-
+          </SettingsSectionFrame> : null}
         {section === "updates" ? <UpdateSettingsSection update={props.update} /> : null}
-
-        {section === "service" ? (
-          <SettingsSectionFrame title="当前服务" description="模型目录来自公共 GET /v1/models。" icon={<Activity size={17} />}>
-            <div className="settings-service-summary">
-              <div className="settings-ready-mark"><span className="connection-dot" />已就绪</div>
-              <span className="settings-service-count">{props.models.length} 个模型</span>
+        {section === "service" ? <SettingsSectionFrame title="当前服务" description="模型目录来自公共 GET /v1/models。" icon={<Activity size={17} />}>
+          <div className="settings-service-summary">
+            <div className="settings-ready-mark"><span className="connection-dot" />已就绪</div>
+            <span className="settings-service-count">{props.models.length} 个模型</span>
+          </div>
+          {props.models.length ? (
+            <div className="settings-model-list">
+              {props.models.slice(0, 24).map((model) => <span className="settings-model-chip" key={model.id}>{model.id}</span>)}
             </div>
-            {props.models.length ? (
-              <div className="settings-model-list">
-                {props.models.slice(0, 24).map((model) => <span className="settings-model-chip" key={model.id}>{model.id}</span>)}
+          ) : <p className="settings-help-text">当前 Key 没有模型白名单，仍可在各工作区手动输入模型 ID。</p>}
+        </SettingsSectionFrame> : null}
+        {section === "data" ? <SettingsSectionFrame title="数据与安全" description="清除厂商时可同时删除该厂商的会话和视频任务。" icon={<ShieldCheck size={17} />}>
+          <div className="settings-data-row">
+            <div>
+              <div className="settings-row-title">删除本地数据</div>
+              <p className="settings-row-description">删除厂商时同时删除本地历史与媒体索引。</p>
+            </div>
+            <input className="settings-checkbox" type="checkbox" checked={removeHistory} onChange={(event) => setRemoveHistory(event.target.checked)} />
+          </div>
+          <div className="settings-provider-danger">
+          {confirmDelete ? (
+            <div className="settings-confirm-row">
+              <div className="error-text">确认删除「{props.activeProfile.displayName ?? props.activeProfile.baseUrl}」？此操作不可撤销。</div>
+              <div className="settings-actions">
+                <button className="button small" type="button" onClick={() => setConfirmDelete(false)}>取消</button>
+                <button className="button small danger" type="button" onClick={() => void props.onDelete(removeHistory)}>确认删除</button>
               </div>
-            ) : <p className="settings-help-text">当前 Key 没有模型白名单，仍可在各工作区手动输入模型 ID。</p>}
-          </SettingsSectionFrame>
-        ) : null}
-
-        {section === "data" ? (
-          <SettingsSectionFrame title="数据与安全" description="清除提供商时可同时删除该提供商的会话和视频任务。" icon={<ShieldCheck size={17} />}>
-            <div className="settings-data-row">
+            </div>
+          ) : (
+            <div className="settings-danger-row">
               <div>
-                <div className="settings-row-title">删除本地数据</div>
-                <p className="settings-row-description">删除提供商时同时删除本地历史与媒体索引。</p>
+                <div className="settings-row-title">移除当前厂商</div>
+                <p className="settings-row-description">断开连接并清理该厂商的本地配置。</p>
               </div>
-              <input className="settings-checkbox" type="checkbox" checked={removeHistory} onChange={(event) => setRemoveHistory(event.target.checked)} />
+              <button className="button danger small" type="button" onClick={() => setConfirmDelete(true)}><Trash2 size={14} />删除</button>
             </div>
-            {confirmDelete ? (
-              <div className="settings-confirm-row">
-                <div className="error-text">确认删除「{props.activeProfile.displayName ?? props.activeProfile.baseUrl}」？此操作不可撤销。</div>
-                <div className="settings-actions">
-                  <button className="button small" type="button" onClick={() => setConfirmDelete(false)}>取消</button>
-                  <button className="button small danger" type="button" onClick={() => void props.onDelete(removeHistory)}>确认删除</button>
-                </div>
-              </div>
-            ) : (
-              <div className="settings-danger-row">
-                <div>
-                  <div className="settings-row-title">移除当前提供商</div>
-                  <p className="settings-row-description">断开连接并清理该提供商的本地配置。</p>
-                </div>
-                <button className="button danger small" type="button" onClick={() => setConfirmDelete(true)}><Trash2 size={14} />删除</button>
-              </div>
-            )}
-          </SettingsSectionFrame>
-        ) : null}
+          )}
+          </div>
+        </SettingsSectionFrame> : null}
       </div>
     </div>
   );

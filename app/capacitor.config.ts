@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: "创作工作台",
   webDir: "dist",
   server: { androidScheme: "https" },
-  // Insets are applied by MainActivity so the WebView also resizes for the
-  // on-screen keyboard instead of consuming only system-bar margins.
+  // Let the WebView receive IME insets; the frontend applies a fallback only
+  // when the composer still overlaps the visual viewport.
   android: { allowMixedContent: false, adjustMarginsForEdgeToEdge: "disable" },
 };
 
