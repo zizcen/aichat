@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: "创作工作台",
   webDir: "dist",
   server: { androidScheme: "https" },
-  // Let the WebView receive IME insets; the frontend applies a fallback only
-  // when the composer still overlaps the visual viewport.
+  // Insets are applied once by MainActivity so system bars and the IME share
+  // the same animated layout boundary.
   android: { allowMixedContent: false, adjustMarginsForEdgeToEdge: "disable" },
 };
 

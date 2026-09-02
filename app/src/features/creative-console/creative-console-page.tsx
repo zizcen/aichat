@@ -40,7 +40,7 @@ import {
 } from "@/features/creative-console/creative-console-api";
 import { PageHeader } from "@/shared/components/page-header";
 import { WorkspaceModeTabs, type CreativeMode } from "./workspace-mode-tabs";
-import { calculateKeyboardInset } from "./keyboard-inset";
+import { advanceKeyboardInset, calculateKeyboardInset } from "./keyboard-inset";
 import { cn } from "@/shared/lib/cn";
 import type { Grok2ApiClient } from "@/shared/api/client";
 import type { Model } from "@/shared/api/types";
@@ -94,7 +94,7 @@ type VideoAction = "generate" | "edit" | "extend";
 const chatHistoryStoragePrefix = "grok2api:creative-console:chat-history:";
 const chatHistoryMaxSessions = 50;
 const chatHistoryMaxBytes = 4 * 1024 * 1024;
-const composerClassName = "overflow-hidden rounded-2xl bg-secondary/45 ring-1 ring-transparent transition-colors focus-within:bg-secondary/60 focus-within:ring-ring";
+const composerClassName = "creative-composer relative z-10 overflow-hidden rounded-2xl bg-secondary ring-1 ring-transparent transition-colors focus-within:bg-secondary focus-within:ring-ring";
 
 export type CreativeConsolePageProps = {
   client: Grok2ApiClient;
@@ -1571,10 +1571,16 @@ function useKeyboardInset(): void {
     const root = document.documentElement;
     const viewport = window.visualViewport;
     if (!viewport) return;
-    let appliedInset = 0;
-    let frame: number | null = null;
     let disposed = false;
     let editableFocused = false;
+    let measureFrame: number | null = null;
+    let animationFrame: number | null = null;
+    let displayedInset = 0;
+    let targetInset = 0;
+    let baselineBottom: number | null = null;
+    let baselineForm: HTMLElement | null = null;
+    let baselineLayoutHeight = window.innerHeight;
+    let focusOutTimer: number | null = null;
     const timers: number[] = [];
 
     const visibleComposer = (): HTMLElement | null => {
@@ -1585,38 +1591,67 @@ function useKeyboardInset(): void {
       return null;
     };
 
+    const setInset = (value: number) => {
+      displayedInset = value;
+      root.style.setProperty("--keyboard-inset", `${value}px`);
+    };
+
+    // Move the whole creative page toward the latest IME boundary. A short
+    // lerp keeps the fallback smooth when a WebView emits only start/end
+    // viewport events; native WindowInsetsAnimation updates simply retarget it.
+    const animate = () => {
+      animationFrame = null;
+      if (disposed) return;
+      const delta = targetInset - displayedInset;
+      if (Math.abs(delta) < 0.5) {
+        setInset(targetInset);
+        return;
+      }
+      setInset(advanceKeyboardInset(displayedInset, targetInset));
+      animationFrame = window.requestAnimationFrame(animate);
+    };
+
+    const animateTo = (nextInset: number) => {
+      targetInset = nextInset;
+      if (animationFrame === null) animationFrame = window.requestAnimationFrame(animate);
+    };
+
     const updateNow = () => {
-      frame = null;
+      measureFrame = null;
       if (disposed) return;
       if (!editableFocused) {
-        if (appliedInset !== 0) {
-          appliedInset = 0;
-          root.style.setProperty("--keyboard-inset", "0px");
-        }
+        baselineBottom = null;
+        baselineForm = null;
+        animateTo(0);
         return;
       }
       const form = visibleComposer();
       if (!form) {
-        if (appliedInset !== 0) {
-          appliedInset = 0;
-          root.style.setProperty("--keyboard-inset", "0px");
-        }
+        animateTo(0);
         return;
       }
       const rect = form.getBoundingClientRect();
-      const visibleBottom = viewport.offsetTop + viewport.height;
-      // Add back the offset already applied by CSS so a translated form does
-      // not make the next viewport event report a false zero overlap.
-      const nextInset = calculateKeyboardInset(rect.bottom, visibleBottom, appliedInset);
-      if (nextInset !== appliedInset) {
-        appliedInset = nextInset;
-        root.style.setProperty("--keyboard-inset", `${nextInset}px`);
+      // Capture the unadjusted layout edge once. Do not derive it from a page
+      // that is currently animating, otherwise each frame would feed back into
+      // the next target and cause a visible wobble.
+      if (form !== baselineForm) {
+        baselineForm = form;
+        baselineBottom = rect.bottom + displayedInset;
+        baselineLayoutHeight = window.innerHeight;
+      } else if (displayedInset < 0.5 && targetInset < 0.5) {
+        baselineBottom = rect.bottom;
+        baselineLayoutHeight = window.innerHeight;
+      } else if (Math.abs(window.innerHeight - baselineLayoutHeight) > 24) {
+        baselineBottom = rect.bottom + displayedInset;
+        baselineLayoutHeight = window.innerHeight;
       }
+      const visibleBottom = viewport.offsetTop + viewport.height;
+      animateTo(calculateKeyboardInset(baselineBottom ?? rect.bottom, visibleBottom));
     };
 
     const update = () => {
       if (disposed) return;
-      if (frame === null) frame = window.requestAnimationFrame(updateNow);
+      if (measureFrame === null) measureFrame = window.requestAnimationFrame(updateNow);
     };
     const isEditable = (target: EventTarget | null): target is HTMLElement => {
       return target instanceof HTMLTextAreaElement
@@ -1624,6 +1659,10 @@ function useKeyboardInset(): void {
         || (target instanceof HTMLElement && target.isContentEditable);
     };
     const retryAfterFocus = () => {
+      if (focusOutTimer !== null) {
+        window.clearTimeout(focusOutTimer);
+        focusOutTimer = null;
+      }
       editableFocused = true;
       update();
       for (const delay of [80, 180, 360, 600])
@@ -1633,11 +1672,13 @@ function useKeyboardInset(): void {
       if (isEditable(event.target)) retryAfterFocus();
     };
     const onFocusOut = () => {
-      const timer = window.setTimeout(() => {
+      if (focusOutTimer !== null) window.clearTimeout(focusOutTimer);
+      focusOutTimer = window.setTimeout(() => {
+        focusOutTimer = null;
         editableFocused = isEditable(document.activeElement);
         update();
-      }, 0);
-      timers.push(timer);
+      }, 260);
+      timers.push(focusOutTimer);
     };
     update();
     viewport.addEventListener("resize", update);
@@ -1653,7 +1694,9 @@ function useKeyboardInset(): void {
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
       timers.forEach((timer) => window.clearTimeout(timer));
-      if (frame !== null) window.cancelAnimationFrame(frame);
+      if (focusOutTimer !== null) window.clearTimeout(focusOutTimer);
+      if (measureFrame !== null) window.cancelAnimationFrame(measureFrame);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
       root.style.removeProperty("--keyboard-inset");
     };
   }, []);

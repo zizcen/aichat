@@ -1,4 +1,4 @@
-创作工作台 v0.1.2
+创作工作台 v0.1.3
 
 这是创作工作台 Android 客户端的正式更新版本：
 
@@ -8,9 +8,10 @@
 - 不包含开发者 API Key，不调用管理端 API
 - 启动和切回前台时检查 GitHub Release，可在应用内下载并安装更新
 - 设置页与主页使用同一套工作台排版；移动输入框跟随 Android 输入法避让
+- 启动时统一播放品牌入场动效；系统状态栏、导航栏和输入法由原生 Insets 统一避让
 
 安装包：
-  creative-workbench-v0.1.2.apk
+  creative-workbench-v0.1.3.apk
 
 安装前请核对 SHA256SUMS.txt。首次启动时填写自己的 HTTPS 网关地址和
 Client API Key；应用不会内置任何 Key。

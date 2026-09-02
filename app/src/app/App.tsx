@@ -236,13 +236,15 @@ export function App() {
   const [workspace, setWorkspace] = useState<Workspace>("chat");
   const [booting, setBooting] = useState(Boolean(activeProfile));
   const [connecting, setConnecting] = useState(false);
-  const [connectionTransitioning, setConnectionTransitioning] = useState(false);
+  const [startupEntered, setStartupEntered] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [sessionsReady, setSessionsReady] = useState(false);
   const [sessionScope, setSessionScope] = useState<string | null>(null);
   const sessionsRef = useRef(sessions);
+  const enterWorkspace = useCallback(() => setStartupEntered(true), []);
+  const skipRestoreProfileIdRef = useRef<string | null>(null);
 
   const showToast = useCallback(
     (message: string, tone: ToastTone = "normal") => {
@@ -256,6 +258,7 @@ export function App() {
 
   const loadProfile = useCallback(
     async (profile: ConnectionProfile, announce = false) => {
+      skipRestoreProfileIdRef.current = profile.id;
       setBooting(true);
       try {
         const key = await readApiKey(profile);
@@ -300,6 +303,12 @@ export function App() {
       };
     }
     if (!activeProfile) {
+      setBooting(false);
+      return;
+    }
+    if (skipRestoreProfileIdRef.current && skipRestoreProfileIdRef.current !== activeProfile.id)
+      skipRestoreProfileIdRef.current = null;
+    if (skipRestoreProfileIdRef.current === activeProfile.id) {
       setBooting(false);
       return;
     }
@@ -429,8 +438,7 @@ export function App() {
           baseUrl: normalized,
           allowHttp: __DEV_BUILD__,
         });
-        setConnectionTransitioning(true);
-        await waitForMs(420);
+        skipRestoreProfileIdRef.current = profile.id;
         setProfiles(readProfiles().profiles);
         setActiveProfileId(profile.id);
         setApiKey(normalizedKey);
@@ -444,17 +452,16 @@ export function App() {
           modelResponse.data.length ? "success" : "normal",
         );
       } catch (error) {
-        setConnectionTransitioning(false);
         throw new Error(formatError(error));
       } finally {
         setConnecting(false);
-        setConnectionTransitioning(false);
       }
     },
     [showToast],
   );
 
   const enterPreview = useCallback(() => {
+    skipRestoreProfileIdRef.current = null;
     setPreviewMode(true);
     setBooting(false);
     setProfiles([previewProfile]);
@@ -485,7 +492,9 @@ export function App() {
   }, [client, showToast]);
 
   const disconnect = useCallback(() => {
+    skipRestoreProfileIdRef.current = null;
     setPreviewMode(false);
+    setStartupEntered(false);
     client?.clearApiKey();
     setClient(null);
     setApiKey(null);
@@ -503,12 +512,14 @@ export function App() {
   const deleteCurrentProfile = useCallback(
     async (removeHistory: boolean) => {
       if (!activeProfile) return;
+      skipRestoreProfileIdRef.current = null;
       await removeProfile(activeProfile, removeHistory);
       setProfiles(readProfiles().profiles);
       setActiveProfileId(readProfiles().activeId);
       setClient(null);
       setApiKey(null);
       setModels([]);
+      setStartupEntered(false);
       showToast(
         removeHistory
           ? "提供商和本地数据已删除。"
@@ -520,14 +531,8 @@ export function App() {
   );
 
   const updateView = <UpdatePrompt update={update} />;
-  if (booting)
-    return (
-      <>
-        <LoadingScreen />
-        {updateView}
-      </>
-    );
-  if (!client || !activeProfile || !apiKey) {
+  const workspaceReady = Boolean(client && activeProfile && apiKey);
+  if (!startupEntered || !client || !activeProfile || !apiKey) {
     return (
       <>
         <ConnectionScreen
@@ -536,7 +541,10 @@ export function App() {
           onConnect={connect}
           onSelectProfile={switchProfile}
           onPreview={enterPreview}
-          transitioning={connectionTransitioning}
+          autoStart={Boolean(activeProfile)}
+          restoring={booting && Boolean(activeProfile) && !workspaceReady}
+          readyToEnter={workspaceReady}
+          onEnter={enterWorkspace}
         />
         {updateView}
       </>
@@ -730,17 +738,6 @@ export function App() {
   );
 }
 
-function LoadingScreen() {
-  return (
-    <div className="connection-page">
-      <div className="status-line">
-        <LoaderCircle className="spinner" size={17} />
-        正在恢复本地提供商…
-      </div>
-    </div>
-  );
-}
-
 function AppToast({
   id,
   message,
@@ -774,8 +771,12 @@ function ConnectionScreen(props: {
   }) => Promise<void>;
   onSelectProfile: (profile: ConnectionProfile) => Promise<void>;
   onPreview: () => void;
-  transitioning?: boolean;
+  autoStart?: boolean;
+  restoring?: boolean;
+  readyToEnter?: boolean;
+  onEnter?: () => void;
 }) {
+  const { autoStart = false, readyToEnter = false, onEnter, onPreview, restoring = false } = props;
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -785,15 +786,30 @@ function ConnectionScreen(props: {
   const [leavingForPreview, setLeavingForPreview] = useState(false);
   const introTimerRef = useRef<number | null>(null);
   const previewTimerRef = useRef<number | null>(null);
+  const enterTimerRef = useRef<number | null>(null);
+  const enterScheduledRef = useRef(false);
   useEffect(() => () => {
     if (introTimerRef.current !== null) window.clearTimeout(introTimerRef.current);
     if (previewTimerRef.current !== null) window.clearTimeout(previewTimerRef.current);
+    if (enterTimerRef.current !== null) window.clearTimeout(enterTimerRef.current);
   }, []);
-  const beginIntro = () => {
+  const beginIntro = useCallback(() => {
     if (introStage !== "intro") return;
     setIntroStage("entering");
     introTimerRef.current = window.setTimeout(() => setIntroStage("ready"), 700);
-  };
+  }, [introStage]);
+  useEffect(() => {
+    if (autoStart) beginIntro();
+  }, [autoStart, beginIntro]);
+  useEffect(() => {
+    if (introStage !== "ready" || !readyToEnter || enterScheduledRef.current) return;
+    enterScheduledRef.current = true;
+    setLeavingForPreview(true);
+    enterTimerRef.current = window.setTimeout(() => onEnter?.(), 420);
+    return () => {
+      if (enterTimerRef.current !== null) window.clearTimeout(enterTimerRef.current);
+    };
+  }, [introStage, onEnter, readyToEnter]);
   const handleIntroClick = () => beginIntro();
   const handleIntroKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if ((event.key === "Enter" || event.key === " ") && introStage === "intro") {
@@ -803,8 +819,12 @@ function ConnectionScreen(props: {
   };
   const startPreview = () => {
     if (leavingForPreview) return;
+    enterScheduledRef.current = true;
     setLeavingForPreview(true);
-    previewTimerRef.current = window.setTimeout(props.onPreview, 420);
+    previewTimerRef.current = window.setTimeout(() => {
+      onPreview();
+      onEnter?.();
+    }, 420);
   };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -825,7 +845,7 @@ function ConnectionScreen(props: {
   };
   return (
     <div
-      className={`connection-shell connection-shell-${introStage}${leavingForPreview || props.transitioning ? " connection-shell-leaving" : ""} min-h-screen bg-background`}
+      className={`connection-shell connection-shell-${introStage}${leavingForPreview ? " connection-shell-leaving" : ""} min-h-screen bg-background`}
       onClick={handleIntroClick}
       onKeyDown={handleIntroKeyDown}
       tabIndex={introStage === "intro" ? 0 : -1}
@@ -844,7 +864,7 @@ function ConnectionScreen(props: {
         </Button>
       </header>
 
-      <main className="connection-main mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[960px] items-center justify-center px-5 py-12 sm:px-8 lg:px-0">
+      <main className="connection-main mx-auto flex min-h-0 w-full max-w-[960px] items-center justify-center px-5 py-12 sm:px-8 lg:px-0">
         <div className="grid w-full max-w-[840px] items-center lg:grid-cols-[minmax(0,1fr)_1px_380px] lg:gap-14">
           <section className="hidden min-h-72 flex-col justify-center lg:flex">
             <p className="text-xs font-medium text-muted-foreground">私人创作空间</p>
@@ -858,7 +878,13 @@ function ConnectionScreen(props: {
           </section>
           <div className="hidden h-64 bg-border lg:block" aria-hidden="true" />
 
-          <section className="w-full max-w-[380px] justify-self-center lg:justify-self-auto">
+          <section className={`w-full max-w-[380px] justify-self-center lg:justify-self-auto${restoring || readyToEnter ? " connection-restore-panel" : ""}`}>
+            {restoring || readyToEnter ? (
+              <div className="connection-restore-state" aria-live="polite">
+                <LoaderCircle className="spinner" size={17} aria-hidden="true" />
+                <span>{readyToEnter ? "正在进入工作台…" : "正在准备工作台…"}</span>
+              </div>
+            ) : <>
             <PageHeader title="连接提供商" description="添加前会检查服务状态和模型权限。" />
             <form className="mt-6 space-y-4" onSubmit={(event) => void submit(event)}>
               <label className="grid gap-2">
@@ -900,6 +926,7 @@ function ConnectionScreen(props: {
               </div>
             ) : null}
             <p className="mt-6 border-t border-border pt-4 text-[11px] leading-5 text-muted-foreground">支持 Android 8.0（API 26）及以上。客户端不内置 Key，也不调用管理端接口。</p>
+            </>}
           </section>
         </div>
       </main>
@@ -3273,8 +3300,4 @@ function formatError(error: unknown): string {
     return error.message || `请求失败（${error.status}）。`;
   }
   return error instanceof Error ? error.message : "请求失败，请稍后重试。";
-}
-
-function waitForMs(duration: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, duration));
 }
