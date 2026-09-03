@@ -17,13 +17,22 @@ export type CapabilityOverrides = Record<string, ModelCapability[] | ModelCapabi
  * of claiming a capability that was never advertised.
  */
 export function readServerCapabilities(model: Model): ModelCapability[] {
-  const values: unknown[] = [model.capability, model.capabilities, model.supports];
+  const values: unknown[] = [
+    model.capability,
+    model.capabilities,
+    model.supports,
+    model.endpoints,
+    model.supported_endpoints,
+    model.supportedEndpoints,
+    model.supported_actions,
+    model.supportedActions,
+  ];
   const result = new Set<ModelCapability>();
   for (const value of values) collectCapabilities(value, result);
   return orderCapabilities(Array.from(result));
 }
 
-/** Infer a conservative built-in mapping for known Grok model name patterns. */
+/** Infer an endpoint family when an OpenAI-compatible catalog omits metadata. */
 export function inferBuiltinCapabilities(modelId: string): ModelCapability[] {
   const id = modelId.trim().toLowerCase();
   if (!id) return [];
@@ -31,13 +40,14 @@ export function inferBuiltinCapabilities(modelId: string): ModelCapability[] {
 
   if (/(?:image|imagine|flux|dall|sdxl)/.test(id) && !/(?:video|voice|audio)/.test(id)) result.add("image");
   if (/(?:video|veo|sora|kling)/.test(id)) result.add("video");
-  if (/(?:tts|text[-_ ]?to[-_ ]?speech|voice|audio)/.test(id)) result.add("tts");
+  if (/(?:tts|text[-_ ]?to[-_ ]?speech|voice)/.test(id)) result.add("tts");
   if (/(?:stt|speech[-_ ]?to[-_ ]?text|transcri|whisper)/.test(id)) result.add("stt");
 
-  // Only well-known text model markers get a chat capability.  For arbitrary
-  // custom IDs return an empty list so the caller can probe the endpoint rather
-  // than silently sending a request to the wrong protocol.
-  if (result.size === 0 && /(?:grok|chat|llama|mistral|qwen|gemma|claude|openai|deepseek)/.test(id)) {
+  // Most OpenAI-compatible /v1/models responses expose only an ID. Once
+  // endpoint-specific families have been classified, keep ordinary text
+  // models in chat and exclude the known non-chat-only families.
+  const nonChatOnly = /(?:^|[/:._-])(?:embed(?:ding)?s?|rerank(?:er)?|moderation|classifier|safety|guard|realtime)(?:$|[/:._0-9-])/;
+  if (result.size === 0 && !nonChatOnly.test(id)) {
     result.add("chat");
   }
   return orderCapabilities(Array.from(result));
@@ -109,7 +119,7 @@ function normalizeCapability(value: string): ModelCapability | undefined {
   const normalized = value.toLowerCase().replace(/[\s-]+/g, "_");
   if (/(?:image|vision|image_generation|image_edit)/.test(normalized)) return "image";
   if (/(?:video|video_generation|video_edit)/.test(normalized)) return "video";
-  if (/(?:tts|speech_synthesis|text_to_speech|voice|audio_generation)/.test(normalized)) return "tts";
+  if (/(?:tts|speech_synthesis|text_to_speech|voice|audio_generation|audio[/_]speech)/.test(normalized)) return "tts";
   if (/(?:stt|transcription|speech_to_text|audio_transcription)/.test(normalized)) return "stt";
   if (/(?:chat|completion|responses?|text(?:_generation)?|language_model)/.test(normalized)) return "chat";
   return undefined;
